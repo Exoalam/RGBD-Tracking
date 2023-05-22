@@ -33,10 +33,14 @@ while True:
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
             if c == 41:
-                distance = depth_frame[point[0], point[1]]
-                print(distance)
+                distance = depth_frame[point[1], point[0]]
+                distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
+                x = int(x)-320
+                y = 240-int(y)
+                x = x*numpy.sin((45/320)*numpy.abs(int(x)-320))
+                y = y*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x)-320)+" y:"+str(240-int(y))+" z:"+str(distance))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance)))
           
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
