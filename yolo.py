@@ -33,7 +33,9 @@ while True:
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
             if c == 41:
-                distance = depth_frame[point[1], point[0]]
+                distance = depth_frame[point[1]-5:point[1]+5, point[0]-5:point[0]+5]
+                distance = np.median(distance)
+                print(distance)
                 distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 x = int(x)-320
                 y = 240-int(y)
