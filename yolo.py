@@ -82,10 +82,14 @@ while True:
                 depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
-                angle = calculate_angle(depth_info, x, int(y+height/2), x, int(y-height/2))
-                depth1 = depth_info.get_distance(x, int(y+height/2))
-                depth2 = depth_info.get_distance(x, int(y-height/2))
+                angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
+                depth1 = depth_info.get_distance(x, round(y+height/2))
+                depth2 = depth_info.get_distance(x, round(y-height/2))
                 height = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
+                angle = calculate_angle(depth_info, round(x+width/2), y, round(x-width/2), y)
+                depth1 = depth_info.get_distance(round(x+width/2), y)
+                depth2 = depth_info.get_distance(round(x-width/2), y)
+                width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
                 hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
