@@ -6,6 +6,7 @@ import pyrealsense2 as rs
 from scipy.signal import savgol_filter
 from realsense_depth import *
 import math
+import matplotlib.pyplot as plt
 
 def calculate_angle(depth_frame, x1, y1, x2, y2):
     depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
@@ -86,10 +87,21 @@ while True:
                 depth2 = depth_info.get_distance(x, int(y-height/2))
                 height = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
+                hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
 
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
-    if cv2.waitKey(1) & 0xFF == ord(' '):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        plt.imshow(hit_map, cmap='viridis')
+        plt.colorbar()
+
+        # Add labels and title
+        plt.xlabel('X-axis')
+        plt.ylabel('Y-axis')
+        plt.title('2D Array Plot')
+
+        # Show the plot
+        plt.show()
         break
