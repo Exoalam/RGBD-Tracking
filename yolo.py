@@ -79,7 +79,7 @@ while True:
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 depth = depth_info.get_distance(x, y)
                 D_point = calc_distance(depth_info,x,y)
-                depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
+                #depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
                 angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
