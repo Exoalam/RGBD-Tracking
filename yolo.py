@@ -8,6 +8,9 @@ from realsense_depth import *
 import math
 import matplotlib.pyplot as plt
 
+import rospy
+from std_msgs.msg import String
+
 def calculate_angle(depth_frame, x1, y1, x2, y2):
     depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
 
@@ -38,6 +41,9 @@ dc = DepthCamera()
 # cap.set(3, 640)
 # cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
+
+rospy.init_node('yolo_new', anonymous=True)
+pub = rospy.Publisher('/object_info', String, queue_size=10)
 while True:
 
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
@@ -63,7 +69,7 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
-            if c == 41:
+            if c == 39:
                 
                 # distance = depth_frame[point[1]-5:point[1]+5, point[0]-5:point[0]+5].flatten()
                 
@@ -79,7 +85,7 @@ while True:
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 depth = depth_info.get_distance(x, y)
                 D_point = calc_distance(depth_info,x,y)
-                #depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
+                depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
                 angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
@@ -94,7 +100,9 @@ while True:
                 hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
-
+                pub_string = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)) + " Width:"+str(round(width,2)) 
+                print(pub_string)
+                pub.publish(pub_string)
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
