@@ -28,12 +28,16 @@ while True:
             
             b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
             c = box.cls
+            r_x = box.xywh[0][0]
+            r_y = box.xywh[0][1]
             x = box.xywh[0][0]
             y = box.xywh[0][1]
+            w = box.xywh[0][2].detach().cpu().numpy()
+            h = box.xywh[0][3].detach().cpu().numpy()
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
-            if c == 41:
+            if c == 39:
                 
                 distance = depth_frame[point[1]-5:point[1]+5, point[0]-5:point[0]+5].flatten()
                 
@@ -45,8 +49,9 @@ while True:
                 distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 x = int(x)-320
                 y = 240-int(y)
-                x = x*numpy.sin((45/320)*numpy.abs(int(x)-320))
-                y = y*numpy.sin((30/240)*numpy.abs(240-int(y)))
+                x = distance*numpy.sin((45/320)*numpy.abs(int(x)-320))
+                y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
+                height = depth_frame
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance)))
           
