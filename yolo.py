@@ -8,8 +8,8 @@ from realsense_depth import *
 import math
 import matplotlib.pyplot as plt
 
-import rospy
-from std_msgs.msg import String
+# import rospy
+# from std_msgs.msg import String
 
 def calculate_angle(depth_frame, x1, y1, x2, y2):
     depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
@@ -29,9 +29,8 @@ def calculate_angle(depth_frame, x1, y1, x2, y2):
 
     return angle
 
-def calc_distance(depth_info,x,y):
+def calc_distance(depth_info,x,y,depth):
     depth_intrinsics = depth_info.profile.as_video_stream_profile().intrinsics
-    depth = depth_info.get_distance(x, y)
     point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x, y], depth)
     return point
 
@@ -42,8 +41,8 @@ dc = DepthCamera()
 # cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
 
-rospy.init_node('yolo_new', anonymous=True)
-pub = rospy.Publisher('/object_info', String, queue_size=10)
+# rospy.init_node('yolo_new', anonymous=True)
+# pub = rospy.Publisher('/object_info', String, queue_size=10)
 while True:
 
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
@@ -60,8 +59,7 @@ while True:
             
             b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
             c = box.cls
-            r_x = box.xywh[0][0]
-            r_y = box.xywh[0][1]
+            pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
             x = box.xywh[0][0]
             y = box.xywh[0][1]
             w = box.xywh[0][2].detach().cpu().numpy()
@@ -69,11 +67,11 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
-            if c == 39:
+            if c == 41:
                 
-                # distance = depth_frame[point[1]-5:point[1]+5, point[0]-5:point[0]+5].flatten()
+                distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
                 
-                # # print(distance.shape)
+                distance = np.median(distance)
                 
                 
                 # distance = savgol_filter(distance, window_length=10, polyorder=5)
@@ -84,7 +82,7 @@ while True:
                 # # x = distance*numpy.sin((45/320)*numpy.abs(int(x)-320))
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 depth = depth_info.get_distance(x, y)
-                D_point = calc_distance(depth_info,x,y)
+                D_point = calc_distance(depth_info,x,y,distance/1000)
                 depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
@@ -96,24 +94,24 @@ while True:
                 depth1 = depth_info.get_distance(round(x+width/2), y)
                 depth2 = depth_info.get_distance(round(x-width/2), y)
                 width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                cv2.circle(color_frame, point, 4, (0, 0, 255))
-                hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
+                cv2.circle(color_frame, pt1, 4, (0, 0, 255))
+                #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
-                pub_string = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)) + " Width:"+str(round(width,2)) 
-                print(pub_string)
-                pub.publish(pub_string)
+                # pub_string = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)) + " Width:"+str(round(width,2)) 
+                # print(pub_string)
+                # pub.publish(pub_string)
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        plt.imshow(hit_map, cmap='viridis')
-        plt.colorbar()
+        # plt.imshow(hit_map, cmap='viridis')
+        # plt.colorbar()
 
-        # Add labels and title
-        plt.xlabel('X-axis')
-        plt.ylabel('Y-axis')
-        plt.title('2D Array Plot')
+        # # Add labels and title
+        # plt.xlabel('X-axis')
+        # plt.ylabel('Y-axis')
+        # plt.title('2D Array Plot')
 
-        # Show the plot
-        plt.show()
+        # # Show the plot
+        # plt.show()
         break
