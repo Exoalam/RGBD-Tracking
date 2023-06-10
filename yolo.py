@@ -21,7 +21,7 @@ def timer():
 def call_function_periodically():
     while True:
         timer()
-        time.sleep(10)
+        time.sleep(5)
 
 # Create a new thread and start it
 
