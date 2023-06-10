@@ -14,12 +14,13 @@ import time
 import rospy
 from std_msgs.msg import String
 
-def my_function():
-    print("Function called")
+def timer():
+    global pub_string
+    pub.publish(pub_string)
 
 def call_function_periodically():
     while True:
-        my_function()
+        timer()
         time.sleep(10)
 
 # Create a new thread and start it
@@ -116,7 +117,7 @@ while True:
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
-                pub.publish(pub_string)
+
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
