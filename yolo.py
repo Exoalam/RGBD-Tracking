@@ -7,9 +7,22 @@ from scipy.signal import savgol_filter
 from realsense_depth import *
 import math
 import matplotlib.pyplot as plt
+import json
+import threading
+import time
 
-# import rospy
-# from std_msgs.msg import String
+import rospy
+from std_msgs.msg import String
+
+def my_function():
+    print("Function called")
+
+def call_function_periodically():
+    while True:
+        my_function()
+        time.sleep(10)
+
+# Create a new thread and start it
 
 def calculate_angle(depth_frame, x1, y1, x2, y2):
     depth_intrinsics = depth_frame.profile.as_video_stream_profile().intrinsics
@@ -41,10 +54,12 @@ dc = DepthCamera()
 # cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
 
-# rospy.init_node('yolo_new', anonymous=True)
-# pub = rospy.Publisher('/object_info', String, queue_size=10)
+rospy.init_node('yolo_new', anonymous=True)
+pub = rospy.Publisher('/object_info', String, queue_size=10)
+thread = threading.Thread(target=call_function_periodically)
+thread.start()
 while True:
-
+    
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
 
@@ -98,9 +113,10 @@ while True:
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
-                # pub_string = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)) + " Width:"+str(round(width,2)) 
-                # print(pub_string)
-                # pub.publish(pub_string)
+                x =  '{ "name":"John", "age":30, "city":"New York"}'
+                pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
+                print(pub_string)
+                pub.publish(pub_string)
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
