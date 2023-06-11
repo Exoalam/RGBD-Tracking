@@ -59,11 +59,11 @@ rospy.init_node('yolo_new', anonymous=True)
 pub = rospy.Publisher('/object_info', String, queue_size=10)
 thread = threading.Thread(target=call_function_periodically)
 thread.start()
+first = True
 while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-
     results = model.predict(img)
 
     for r in results:
@@ -117,6 +117,11 @@ while True:
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
+                if first:
+                    f = open("Map.txt", "w")
+                    f.write(model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2)))
+                    f.close()
+                    first = False
 
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
