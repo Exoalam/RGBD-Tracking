@@ -13,7 +13,7 @@ import time
 
 import rospy
 from std_msgs.msg import String
-
+pub_string = ""
 def timer():
     global pub_string
     pub.publish(pub_string)
@@ -86,10 +86,8 @@ while True:
             if c == 41:
                 
                 distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
-                
                 distance = np.median(distance)
-                
-                
+                idx = np.argwhere(depth_frame == distance)
                 # distance = savgol_filter(distance, window_length=10, polyorder=5)
                 # distance = np.median(distance)
                 # distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
@@ -110,14 +108,15 @@ while True:
                 depth1 = depth_info.get_distance(round(x+width/2), y)
                 depth2 = depth_info.get_distance(round(x-width/2), y)
                 width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                cv2.circle(color_frame, pt1, 4, (0, 0, 255))
+                if idx.shape[0] != 0:
+                    cv2.circle(color_frame, (idx[0][0],idx[0][1]), 4, (0, 0, 255))
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
-                if first:
+                if first and D_point[2] > 0:
                     f = open("Map.txt", "w")
                     f.write(model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2)))
                     f.close()
