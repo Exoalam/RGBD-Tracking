@@ -54,12 +54,12 @@ dc = DepthCamera()
 # cap.set(3, 640)
 # cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
-
+detect_list = [39,41]
 rospy.init_node('yolo_new', anonymous=True)
 pub = rospy.Publisher('/object_info', String, queue_size=10)
 thread = threading.Thread(target=call_function_periodically)
 thread.start()
-first = True
+text = [39,41]
 while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
@@ -83,7 +83,7 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
-            if c == 41:
+            if c in detect_list:
                 
                 distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
                 distance = np.median(distance)
@@ -116,11 +116,18 @@ while True:
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
-                if first and D_point[2] > 0:
-                    f = open("Map.txt", "w")
-                    f.write(model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2)))
-                    f.close()
-                    first = False
+                if c in text:
+                    #f = open("/home/shuvo/RGBD-Tracking/Map.txt", "w")
+                    #f.write(str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2)) + '\n')
+                    #f.close()
+                    with open('Map.txt', 'a') as file:
+                        # Move the file pointer to the end of the file
+                        file.seek(0, 2)  # 2 indicates moving to the end of the file
+
+                        # Write the new entry followed by a newline character
+                        new_object = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))
+                        file.write(new_object + '\n')
+                    text.remove(c)
 
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
