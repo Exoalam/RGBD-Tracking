@@ -35,7 +35,6 @@ def calculate_angle(depth_frame, x1, y1, x2, y2):
     # Convert pixel coordinates to 3D coordinates
     point1 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x1, y1], depth1)
     point2 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x2, y2], depth2)
-
     # Calculate the angle between the two points
     angle = math.atan2(point2[1] - point1[1], point2[0] - point1[0]) * 180.0 / math.pi
     if angle < 0:
@@ -101,19 +100,20 @@ while True:
                 depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
-                angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
-                depth1 = depth_info.get_distance(x, round(y+height/2))
-                depth2 = depth_info.get_distance(x, round(y-height/2))
-                height = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                angle = calculate_angle(depth_info, round(x+width/2), y, round(x-width/2), y)
-                depth1 = depth_info.get_distance(round(x+width/2), y)
-                depth2 = depth_info.get_distance(round(x-width/2), y)
-                width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
+                # angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
+                # depth1 = depth_info.get_distance(x, round(y+height/2))
+                # depth2 = depth_info.get_distance(x, round(y-height/2))
+                # height = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
+                # angle = calculate_angle(depth_info, round(x+width/2), y, round(x-width/2), y)
+                # depth1 = depth_info.get_distance(round(x+width/2), y)
+                # depth2 = depth_info.get_distance(round(x-width/2), y)
+                # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
+                angle = calculate_angle(depth_info, x, y, 320, 240)
                 if idx.shape[0] != 0:
                     cv2.circle(color_frame, (idx[0][0],idx[0][1]), 4, (0, 0, 255))
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Height:"+str(round(height,2)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(np.abs(D_point[2]*np.cos(angle)),2))+ " Height:"+str(round(height,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
