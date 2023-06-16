@@ -4,6 +4,7 @@ import numpy as np
 class DepthCamera:
     align = ""
     depth_scale = ""
+
     def __init__(self):
         global align
         global depth_scale
@@ -55,14 +56,41 @@ class DepthCamera:
         
         # Get intrinsic properties of the depth image
         depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
+        global_point = []
         # Iterate over the depth image (assuming depth_image is a 2D numpy array)
         x,y = Global_point
         depth = depth_image[y, x] * depth_scale
                 # Convert depth pixel to global coordinates
-        global_point = rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth)
+        global_point.append(rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth))
         print(global_point)
 
         return True, depth_image, color_image, depth_frame, global_point
 
+    def Global_points(self,x,y):
+        global align
+
+        global depth_scale
+        frames = self.pipeline.wait_for_frames()
+        depth_frame = frames.get_depth_frame()
+
+    
+        aligned_frames = align.process(frames)
+
+        depth_frame = aligned_frames.get_depth_frame()
+
+        # Get depth frame as numpy array
+        depth_image = np.asanyarray(depth_frame.get_data())
+        
+        # Get intrinsic properties of the depth image
+        depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
+        global_point = []
+        # Iterate over the depth image (assuming depth_image is a 2D numpy array)
+
+        depth = depth_image[y, x] * depth_scale
+                # Convert depth pixel to global coordinates
+        global_point.append(rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth))
+        print(global_point)
+
+        return global_point
     def release(self):
         self.pipeline.stop()

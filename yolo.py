@@ -5,6 +5,7 @@ from ultralytics.yolo.utils.plotting import Annotator
 import pyrealsense2 as rs
 from scipy.signal import savgol_filter
 from realsense_depth import *
+
 import math
 import matplotlib.pyplot as plt
 import json
@@ -14,7 +15,6 @@ import time
 import rospy
 from std_msgs.msg import String
 
-Global_point = (0,0)
 pub_string = ""
 def timer():
     global pub_string
@@ -83,7 +83,7 @@ while True:
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
             if c in detect_list:
-                Global_point = point
+                points = dc.Global_points(point[0],point[1])
                 # distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
                 # distance = np.average(distance)
                 # idx = np.argwhere(depth_frame == distance)
@@ -95,7 +95,7 @@ while True:
                 # y = 240-int(y)
                 # # x = distance*numpy.sin((45/320)*numpy.abs(int(x)-320))
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
-                depth = global_cod[0][2]
+                depth = points[0][2]
                 print(depth)
                 D_point = calc_distance(depth_info,x,y,depth)
                 depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
