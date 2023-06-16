@@ -13,6 +13,8 @@ import time
 
 import rospy
 from std_msgs.msg import String
+
+Global_point = (0,0)
 pub_string = ""
 def timer():
     global pub_string
@@ -36,9 +38,7 @@ def calculate_angle(depth_frame, x1, y1, x2, y2):
     point1 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x1, y1], depth1)
     point2 = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x2, y2], depth2)
     # Calculate the angle between the two points
-    angle = math.atan2(point2[1] - point1[1], point2[0] - point1[0]) * 180.0 / math.pi
-    if angle < 0:
-        angle += 360.0
+    angle = math.atan2((point2[1] - point1[1]), point2[0] - point1[0]) * 180.0 / math.pi
 
     return angle
 
@@ -62,10 +62,9 @@ thread.start()
 
 while True:
     
-    ret, depth_frame, color_frame, depth_info = dc.get_frame()
+    ret, depth_frame, color_frame, depth_info, global_cod = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
     results = model.predict(img)
-
     for r in results:
         
         annotator = Annotator(color_frame)
@@ -84,19 +83,21 @@ while True:
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
             if c in detect_list:
-                
-                distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
-                distance = np.median(distance)
-                idx = np.argwhere(depth_frame == distance)
+                Global_point = point
+                # distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
+                # distance = np.average(distance)
+                # idx = np.argwhere(depth_frame == distance)
+                #print(global_cod[point[0],point[1]])
                 # distance = savgol_filter(distance, window_length=10, polyorder=5)
                 # distance = np.median(distance)
-                # distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
+                #distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 # x = int(x)-320
                 # y = 240-int(y)
                 # # x = distance*numpy.sin((45/320)*numpy.abs(int(x)-320))
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
-                depth = depth_info.get_distance(x, y)
-                D_point = calc_distance(depth_info,x,y,distance/1000)
+                depth = global_cod[0][2]
+                print(depth)
+                D_point = calc_distance(depth_info,x,y,depth)
                 depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
@@ -108,12 +109,15 @@ while True:
                 # depth1 = depth_info.get_distance(round(x+width/2), y)
                 # depth2 = depth_info.get_distance(round(x-width/2), y)
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                angle = calculate_angle(depth_info, x, y, 320, 240)
-                if idx.shape[0] != 0:
-                    cv2.circle(color_frame, (idx[0][0],idx[0][1]), 4, (0, 0, 255))
+                angle = calculate_angle(depth_info, point[0], point[1], 320, 240)
+                # print(idx)
+                # distance *= np.cos(angle)
+                # if idx.shape[0] != 0:
+                cv2.circle(color_frame, point, 4, (0, 0, 255))
+                cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(np.abs(D_point[2]*np.cos(angle)),2))+ " Height:"+str(round(height,2)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(np.abs(D_point[2]),2))+ " Height:"+str(round(height,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 print(pub_string)
