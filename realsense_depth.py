@@ -58,7 +58,7 @@ class DepthCamera:
         global_point = []
         # Iterate over the depth image (assuming depth_image is a 2D numpy array)
         x,y = Global_point
-        depth = depth_image[x, y] * depth_scale
+        depth = depth_image[y, x] * depth_scale
                 # Convert depth pixel to global coordinates
         global_point.append(rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth))
         print(global_point)
