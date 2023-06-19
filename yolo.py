@@ -26,6 +26,14 @@ def call_function_periodically():
         time.sleep(5)
 
 # Create a new thread and start it
+def calculate_angle_2d_x_axis(P1, P2):
+
+    theta = np.arctan2(P2[1] - P1[1], P2[0] - P1[0])
+
+
+    theta = np.degrees(theta)
+
+    return theta
 def calculate_angle_2d(P1, P2):
     P1 = np.array(P1)
     P2 = np.array(P2)
@@ -109,7 +117,7 @@ while True:
                 # depth1 = depth_info.get_distance(round(x+width/2), y)
                 # depth2 = depth_info.get_distance(round(x-width/2), y)
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                angle = calculate_angle_2d((x,y),(320,240))
+                angle = calculate_angle_2d_x_axis((x,y),(320,240))
                 # print(idx)
                 # distance *= np.cos(angle)
                 # if idx.shape[0] != 0:
