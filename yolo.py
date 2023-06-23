@@ -8,6 +8,7 @@ from realsense_depth import *
 
 import math
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import json
 import threading
 import time
@@ -15,6 +16,11 @@ import time
 import rospy
 from std_msgs.msg import String
 
+custom_dtype = np.dtype([
+    ('hit', np.int8),       
+    ('accuracy', np.int8)      
+])
+map = np.zeros((100, 100, 200), dtype=custom_dtype)
 pub_string = ""
 def timer():
     global pub_string
@@ -106,6 +112,8 @@ while True:
                 # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 depth = points[0][2]
                 D_point = calc_distance(depth_info,x,y,depth)
+                
+       
                 #depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
                 height = h*.8
                 width = w*.8
@@ -118,6 +126,15 @@ while True:
                 # depth2 = depth_info.get_distance(round(x-width/2), y)
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
                 angle = calculate_angle_2d((x,y),(320,240))
+                map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
+                if angle > 0 and angle < 10:
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
+                if angle > 10 and angle < 20:
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 98   
+                if angle > 30 and angle < 40:
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 97 
+                if angle > 40:
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 95                                                       
                 # print(idx)
                 # distance *= np.cos(angle)
                 # if idx.shape[0] != 0:
@@ -145,14 +162,5 @@ while True:
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
-        # plt.imshow(hit_map, cmap='viridis')
-        # plt.colorbar()
-
-        # # Add labels and title
-        # plt.xlabel('X-axis')
-        # plt.ylabel('Y-axis')
-        # plt.title('2D Array Plot')
-
-        # # Show the plot
-        # plt.show()
-        break
+        cv2.destroyAllWindows()
+        break  
