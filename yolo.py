@@ -164,3 +164,15 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break  
+
+points = map[map['hit']>1]
+indices = np.where(map['hit'] > 1)
+
+points = list(zip(indices[0], indices[1], indices[2]))
+
+with open('hitmap.txt', 'a') as file:
+    file.seek(0, 2) 
+    for i, point in enumerate(points):
+        x= f"Point {i+1}: {point} {map[point]}"
+        file.write(x + '\n')
+
