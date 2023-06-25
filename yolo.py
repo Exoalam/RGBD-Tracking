@@ -13,8 +13,8 @@ import json
 import threading
 import time
 
-# import rospy
-# from std_msgs.msg import String
+import rospy
+from std_msgs.msg import String
 
 custom_dtype = np.dtype([
     ('hit', np.int8),       
@@ -23,14 +23,14 @@ custom_dtype = np.dtype([
 ])
 map = np.zeros((200, 200, 200), dtype=custom_dtype)
 pub_string = ""
-# def timer():
-#     global pub_string
-#     pub.publish(pub_string)
+def timer():
+    global pub_string
+    pub.publish(pub_string)
 
-# def call_function_periodically():
-#     while True:
-#         timer()
-#         time.sleep(5)
+def call_function_periodically():
+    while True:
+        timer()
+        time.sleep(5)
 
 # Create a new thread and start it
 def calculate_angle_2d_x_axis(P1, P2):
@@ -71,10 +71,10 @@ dc = DepthCamera()
 hit_map = np.zeros((1000,1000))
 detect_list = [39,41]
 text = [39,41]
-# rospy.init_node('yolo_new', anonymous=True)
-# pub = rospy.Publisher('/object_info', String, queue_size=10)
-# thread = threading.Thread(target=call_function_periodically)
-# thread.start()
+rospy.init_node('yolo_new', anonymous=True)
+pub = rospy.Publisher('/object_info', String, queue_size=10)
+thread = threading.Thread(target=call_function_periodically)
+thread.start()
 
 while True:
     
