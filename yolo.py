@@ -13,23 +13,24 @@ import json
 import threading
 import time
 
-import rospy
-from std_msgs.msg import String
+# import rospy
+# from std_msgs.msg import String
 
 custom_dtype = np.dtype([
     ('hit', np.int8),       
-    ('accuracy', np.int8)      
+    ('accuracy', np.int8),
+    ('class', np.int8)      
 ])
-map = np.zeros((100, 100, 200), dtype=custom_dtype)
+map = np.zeros((200, 200, 200), dtype=custom_dtype)
 pub_string = ""
-def timer():
-    global pub_string
-    pub.publish(pub_string)
+# def timer():
+#     global pub_string
+#     pub.publish(pub_string)
 
-def call_function_periodically():
-    while True:
-        timer()
-        time.sleep(5)
+# def call_function_periodically():
+#     while True:
+#         timer()
+#         time.sleep(5)
 
 # Create a new thread and start it
 def calculate_angle_2d_x_axis(P1, P2):
@@ -70,10 +71,10 @@ dc = DepthCamera()
 hit_map = np.zeros((1000,1000))
 detect_list = [39,41]
 text = [39,41]
-rospy.init_node('yolo_new', anonymous=True)
-pub = rospy.Publisher('/object_info', String, queue_size=10)
-thread = threading.Thread(target=call_function_periodically)
-thread.start()
+# rospy.init_node('yolo_new', anonymous=True)
+# pub = rospy.Publisher('/object_info', String, queue_size=10)
+# thread = threading.Thread(target=call_function_periodically)
+# thread.start()
 
 while True:
     
@@ -99,6 +100,7 @@ while True:
             point = int(x), int(y)
             if c in detect_list:
                 points = dc.Global_points(point[0],point[1])
+                distance = dc.actual_depth(point[0],point[1])
                 # distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
                 # distance = np.average(distance)
                 # idx = np.argwhere(depth_frame == distance)
@@ -125,8 +127,12 @@ while True:
                 # depth1 = depth_info.get_distance(round(x+width/2), y)
                 # depth2 = depth_info.get_distance(round(x-width/2), y)
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                angle = calculate_angle_2d((x,y),(320,240))
+                #angle = calculate_angle_2d((x,y),(320,240))
+                angle = np.abs(90/640*x-45)
+                print(angle)
+                print(distance)
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
+                map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
                 if angle > 0 and angle < 10:
                     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
                 if angle > 10 and angle < 20:
@@ -142,7 +148,7 @@ while True:
                 cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(np.abs(D_point[2]),2))+ " Angle:"+str(round(angle,2)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(np.abs(D_point[2]),2))+ " Angle:"+str(round(distance,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:

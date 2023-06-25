@@ -4,6 +4,10 @@ import numpy as np
 class DepthCamera:
     align = ""
     depth_scale = ""
+    decimation = rs.decimation_filter() 
+    spatial = rs.spatial_filter()  
+    temporal = rs.temporal_filter()  
+    hole_filling = rs.hole_filling_filter()
 
     def __init__(self):
         global align
@@ -82,5 +86,12 @@ class DepthCamera:
         global_point.append(rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth))
 
         return global_point
+    
+    def actual_depth(self,x,y):
+        frames = self.pipeline.wait_for_frames()
+        depth_frame = frames.get_depth_frame()
+        distance = depth_frame.get_distance(x, y)
+        return distance
+    
     def release(self):
         self.pipeline.stop()
