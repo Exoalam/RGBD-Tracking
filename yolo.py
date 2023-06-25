@@ -34,7 +34,7 @@ def call_function_periodically():
         timer()
         time.sleep(5)
 
-# Create a new thread and start it
+
 def calculate_angle_2d_x_axis(P1, P2):
 
     theta = np.arctan2(P2[1] - P1[1], P2[0] - P1[0])
