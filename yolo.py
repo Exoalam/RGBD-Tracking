@@ -168,7 +168,7 @@ while True:
                         # Move the file pointer to the end of the file
                         file.seek(0, 2)  # 2 indicates moving to the end of the file
 
-                        # Write the new entry followed by a newline character
+
                         new_object = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))
                         file.write(new_object + '\n')
                     
@@ -179,22 +179,23 @@ while True:
         cv2.destroyAllWindows()
         break  
 
-# points = map[map['hit']>1]
-# indices = np.where(map['hit'] > 1)
+indices = np.where(map['hit'] > 1)
 
-# points = list(zip(indices[0], indices[1], indices[2]))
+points = list(zip(indices[0], indices[1], indices[2]))
+datax = []
+with open('hitmap.txt', 'a') as file:
+    file.seek(0, 2) 
+    for i, point in enumerate(points):
+        x= f"Point {i+1}: {point} {map[point]}"
+        datax.append([point[0],point[1],point[2],map[point]['hit']])
+        file.write(x + '\n')
 
-# with open('hitmap.txt', 'a') as file:
-#     file.seek(0, 2) 
-#     for i, point in enumerate(points):
-#         x= f"Point {i+1}: {point} {map[point]}"
-#         file.write(x + '\n')
-
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+xs, ys, zs, hits = zip(*datax)
+ax.scatter(xs, ys, zs, s=hits)
+plt.show()
 with open('output.csv', 'w', newline='') as file:
     writer = csv.writer(file)
-
-    # Write each sublist in the list to the CSV
     for row in data:
         writer.writerow(row)
-
-
