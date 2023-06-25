@@ -12,9 +12,11 @@ from mpl_toolkits.mplot3d import Axes3D
 import json
 import threading
 import time
-
+import csv
 import rospy
 from std_msgs.msg import String
+
+data = []
 
 custom_dtype = np.dtype([
     ('hit', np.int8),       
@@ -65,10 +67,12 @@ def calc_distance(depth_info,x,y,depth):
 
 model = YOLO('yolov8n.pt')
 dc = DepthCamera()
+target_dis = 1
 # cap = cv2.VideoCapture(4)
 # cap.set(3, 640)
 # cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
+data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
 detect_list = [39,41]
 text = [39,41]
 rospy.init_node('yolo_new', anonymous=True)
@@ -129,18 +133,22 @@ while True:
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
                 #angle = calculate_angle_2d((x,y),(320,240))
                 angle = np.abs(90/640*x-45)
+                distance = np.abs(distance * np.cos(angle))
                 print(angle)
                 print(distance)
+                static_accuracy = 100 - np.abs(target_dis-D_point[2])*100/target_dis
+                angled_accuracy = 100 - np.abs(distance-D_point[2])*100/distance
+                data.append([round(angle,2), target_dis, round(distance,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
-                if angle > 0 and angle < 10:
-                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
-                if angle > 10 and angle < 20:
-                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 98   
-                if angle > 30 and angle < 40:
-                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 97 
-                if angle > 40:
-                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 95                                                       
+                # if angle > 0 and angle < 10:
+                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
+                # if angle > 10 and angle < 20:
+                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 98   
+                # if angle > 30 and angle < 40:
+                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 97 
+                # if angle > 40:
+                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 95                                                       
                 # print(idx)
                 # distance *= np.cos(angle)
                 # if idx.shape[0] != 0:
@@ -148,7 +156,7 @@ while True:
                 cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
                 #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
                 # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" r:"+str(round(np.abs(D_point[2])*np.cos(angle),2))+ " dis:"+str(round(distance,2)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:
@@ -171,14 +179,22 @@ while True:
         cv2.destroyAllWindows()
         break  
 
-points = map[map['hit']>1]
-indices = np.where(map['hit'] > 1)
+# points = map[map['hit']>1]
+# indices = np.where(map['hit'] > 1)
 
-points = list(zip(indices[0], indices[1], indices[2]))
+# points = list(zip(indices[0], indices[1], indices[2]))
 
-with open('hitmap.txt', 'a') as file:
-    file.seek(0, 2) 
-    for i, point in enumerate(points):
-        x= f"Point {i+1}: {point} {map[point]}"
-        file.write(x + '\n')
+# with open('hitmap.txt', 'a') as file:
+#     file.seek(0, 2) 
+#     for i, point in enumerate(points):
+#         x= f"Point {i+1}: {point} {map[point]}"
+#         file.write(x + '\n')
+
+with open('output.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+
+    # Write each sublist in the list to the CSV
+    for row in data:
+        writer.writerow(row)
+
 
