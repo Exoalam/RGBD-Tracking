@@ -5,7 +5,7 @@ from ultralytics.yolo.utils.plotting import Annotator
 import pyrealsense2 as rs
 from scipy.signal import savgol_filter
 from realsense_depth import *
-
+from scipy.spatial import distance
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -21,11 +21,25 @@ data = []
 custom_dtype = np.dtype([
     ('hit', np.int8),       
     ('accuracy', np.int8),
-    ('class', np.int8),
-    ('object', np.int8)         
+    ('class', np.int8)       
 ])
 map = np.zeros((200, 200, 200), dtype=custom_dtype)
 pub_string = ""
+def max_hit(points):
+    final_list = []
+    dis = 0
+    for p in points:
+        point_list = []
+        value_list = []
+        for point in points:
+            dis = distance.euclidean(point, p)
+            if dis < 20:
+                point_list.append(point)
+                value_list.append(map[point]['hit'])
+        max_point = point_list[value_list.index(max(value_list))]
+        if max_point not in final_list:        
+            final_list.append(max_point)
+    return final_list        
 def timer():
     global pub_string
     pub.publish(pub_string)
@@ -106,7 +120,7 @@ while True:
             old_data = [(0,0,0),0]
             if c in detect_list:
                 points = dc.Global_points(point[0],point[1])
-                distance = dc.actual_depth(point[0],point[1])
+                dis = dc.actual_depth(point[0],point[1])
                 # distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
                 # distance = np.average(distance)
                 # idx = np.argwhere(depth_frame == distance)
@@ -135,21 +149,15 @@ while True:
                 # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
                 #angle = calculate_angle_2d((x,y),(320,240))
                 angle = np.abs(90/640*x-45)
-                distance = np.abs(distance * np.cos(angle))
+                dis = np.abs(dis * np.cos(angle))
                 print(angle)
-                print(distance)
+                print(dis)
                 static_accuracy = 100 - np.abs(target_dis-D_point[2])*100/target_dis
-                angled_accuracy = 100 - np.abs(distance-D_point[2])*100/distance
-                data.append([round(angle,2), target_dis, round(distance,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
+                angled_accuracy = 100 - np.abs(dis-D_point[2])*100/dis
+                data.append([round(angle,2), target_dis, round(dis,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
-                distance = np.linalg.norm(D_point - old_data[0]) * 100
-                if distance > 20:
-                    if c == old_data[1]:
-                        map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['object'] = map[round(old_data[0][0]*100),round(old_data[0][1]*100),round(old_data[0][2]*100)]['object'] + 1
-                    else:    
-                        map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['object'] += 1
-                old_data = [D_point,c]
+                # distance = np.linalg.norm(D_point - old_data[0]) * 100
                 
                 # if angle > 0 and angle < 10:
                 #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
@@ -192,6 +200,7 @@ while True:
 indices = np.where(map['hit'] > 1)
 
 points = list(zip(indices[0], indices[1], indices[2]))
+points = max_hit(points)
 datax = []
 with open('hitmap.txt', 'a') as file:
     file.seek(0, 2) 
