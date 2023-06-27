@@ -220,6 +220,7 @@ def solve(frame, weights = 'yolov8n.pt', save_file = False):
         save_info(stringify(circle_infos, line_angles, get_positions(line_angles)))
 
     string1 = stringify(circle_infos, line_angles, get_positions(line_angles))
+    # return cropped_frames_drawn[0]
     cv2.imshow('circle', cropped_frames_drawn[0])
     cv2.waitKey(0)  
 
@@ -229,8 +230,9 @@ def qr_scanner(image):
     d = cv2.QRCodeDetector()
     val,p,s_q = d.detectAndDecode(image)
     cv2.putText(image, str(val), (20, 20), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA, False)
-    cv2.imshow('Image', image)
-    cv2.waitKey(0)
+    return image
+    # cv2.imshow('Image', image)
+    # cv2.waitKey(0)
 
 # Calculate pixel to point
 def calc_distance(depth_info,x,y,depth):
@@ -263,8 +265,9 @@ while True:
             if c in detect_list or 1:
                 if cv2.waitKey(1) == ord('s'):
                     try:
-                        thread = threading.Thread(target=qr_scanner(color_frame))
-                        thread.start()
+                        # thread = threading.Thread(target=qr_scanner(color_frame))
+                        # thread.start()
+                        color_frame = qr_scanner(color_frame)
                     except:
                         print("QR Error")
                     
@@ -272,6 +275,7 @@ while True:
                     try:
                         thread = threading.Thread(target=solve(color_frame))
                         thread.start()
+                        #color_frame = solve(color_frame)
                     except:
                         print("Circle Error")
                       
