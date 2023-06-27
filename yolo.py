@@ -21,7 +21,8 @@ data = []
 custom_dtype = np.dtype([
     ('hit', np.int8),       
     ('accuracy', np.int8),
-    ('class', np.int8)      
+    ('class', np.int8),
+    ('object', np.int8)         
 ])
 map = np.zeros((200, 200, 200), dtype=custom_dtype)
 pub_string = ""
@@ -102,6 +103,7 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
+            old_data = [(0,0,0),0]
             if c in detect_list:
                 points = dc.Global_points(point[0],point[1])
                 distance = dc.actual_depth(point[0],point[1])
@@ -141,6 +143,14 @@ while True:
                 data.append([round(angle,2), target_dis, round(distance,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
+                distance = np.linalg.norm(D_point - old_data[0]) * 100
+                if distance > 20:
+                    if c == old_data[1]:
+                        map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['object'] = map[round(old_data[0][0]*100),round(old_data[0][1]*100),round(old_data[0][2]*100)]['object'] + 1
+                    else:    
+                        map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['object'] += 1
+                old_data = [D_point,c]
+                
                 # if angle > 0 and angle < 10:
                 #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
                 # if angle > 10 and angle < 20:
