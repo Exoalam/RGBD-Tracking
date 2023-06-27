@@ -260,7 +260,7 @@ while True:
             x = box.xywh[0][0].detach().cpu().numpy()
             y = box.xywh[0][1].detach().cpu().numpy()
             point = int(x), int(y)
-            if c in detect_list:
+            if c in detect_list or 1:
                 if cv2.waitKey(1) == ord('s'):
                     try:
                         thread = threading.Thread(target=qr_scanner(color_frame))
