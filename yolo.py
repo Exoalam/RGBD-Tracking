@@ -33,7 +33,7 @@ def max_hit(points):
         value_list = []
         for point in points:
             dis = distance.euclidean(point, p)
-            if dis < 20:
+            if dis < 10:
                 point_list.append(point)
                 value_list.append(map[point]['hit'])
         max_point = point_list[value_list.index(max(value_list))]
@@ -201,13 +201,23 @@ indices = np.where(map['hit'] > 1)
 
 points = list(zip(indices[0], indices[1], indices[2]))
 points = max_hit(points)
-datax = []
-with open('hitmap.txt', 'a') as file:
+data_actual = []
+for i in detect_list:
+    count = 1
+    for x in points:
+        if map[x]['class'] == i:
+            cls = map[x]['class']
+            data_actual.append(['class:'+str(cls)+'/'+model.names[int(cls)],' Object: '+str(count), ' Pos: ',x])
+            count += 1
+
+with open('hitlist.txt', 'a') as file:
     file.seek(0, 2) 
-    for i, point in enumerate(points):
-        x= f"Point {i+1}: {point} {map[point]}"
-        datax.append([point[0],point[1],point[2],map[point]['hit']])
-        file.write(x + '\n')
+    for i in data_actual:
+        file.write(str(i)+'\n')
+
+datax = []
+for i, point in enumerate(points):
+    datax.append([point[0],point[1],point[2],map[point]['hit']])
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
