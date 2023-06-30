@@ -1,4 +1,3 @@
-from __future__ import print_function
 from ultralytics import YOLO
 import cv2
 import numpy
@@ -15,94 +14,8 @@ import csv
 import rospy
 from std_msgs.msg import String
 import sys
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
-pointx = []
-
-
-      
-      
-def image_callback(img_msg):
-  try:
-    cv_image = dbridge.imgmsg_to_cv2(img_msg, "16UC1")
-    print(cv_image[pointx])  
-  except CvBridgeError as e:
-    print(e)  
-dbridge = CvBridge()
-def depth_data(point):
-  global pointx
-  pointx = point[1],point[0]
-  sub = rospy.Subscriber("/camera/depth/image_rect_raw", Image, image_callback)        
-class Vision_Engine:
-
-  def __init__(self):
-    #self.image_pub = rospy.Publisher("image_topic_2",Image)
-
-    self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.callback)
-    
-    self.model = YOLO('yolov8n.pt')
-    
-
-      
-  def callback(self,data):
-    try:
-      color_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
-      img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-      detect_list = [39,41] # Class of detected objects
-      results = self.model.predict(img)
-      for r in results:   
-        annotator = Annotator(color_frame)
-        boxes = r.boxes
-
-        for box in boxes:
-            
-            b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
-            c = box.cls # Class of the Object
-            pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
-            x = box.xywh[0][0].detach().cpu().numpy()
-            y = box.xywh[0][1].detach().cpu().numpy()
-            point = int(x), int(y)
-            if c in detect_list:
-                
-                depth_data(point)
-                if cv2.waitKey(1) == ord('s'):
-                    try:
-                        # thread = threading.Thread(target=qr_scanner(color_frame))
-                        # thread.start()
-                        color_frame = qr_scanner(color_frame)
-                    except:
-                        print("QR Error")
-                    
-                if cv2.waitKey(1) == ord('x'):                   
-                    try:
-                        thread = threading.Thread(target=solve(color_frame))
-                        thread.start()
-                        #color_frame = solve(color_frame)
-                    except:
-                        print("Circle Error")
-                if cv2.waitKey(1) == ord('m'):                   
-                    try:
-                        thread = threading.Thread(target=motion(color_frame))
-                        thread.start()
-                        #color_frame = solve(color_frame)
-                    except:
-                        print("Motion Error")        
-                      
-                # points = dc.Global_points(point[0],point[1]) 
-                # depth = points[0][2] # Get Z value
-                # D_point = calc_distance(depth_info,x,y,depth) # Get x,y,z values
-                D_point = (0,0,0)
-                angle = np.abs(90/640*x-45) # Get Angle from the center
-                cv2.circle(color_frame, point, 4, (0, 0, 255)) # Center of the camera
-                cv2.circle(color_frame, (320,240), 4, (0, 0, 255)) # Center of the detected object
-                annotator.box_label(b, self.model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
-
-      color_frame = annotator.result()  
-      cv2.imshow('YOLO V8 Detection', color_frame)  
-    except CvBridgeError as e:
-      print(e)
-      
 def motion(frame):
     frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, frame2 = cv2.threshold(frame2, 30, 255, cv2.THRESH_BINARY_INV)
@@ -349,15 +262,92 @@ def qr_scanner(image):
     return image
     # cv2.imshow('Image', image)
     # cv2.waitKey(0)
+class PointCloudGenerator:
+    def __init__(self):
+        self.bridge = CvBridge()
+        self.depth_image = None
+        self.camera_info = None
+        self.depth_scale = 0.001
+        self.model = YOLO('yolov8n.pt')
+        self.sub_depth = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth)
+        self.sub_info = rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.callback_info)
+        self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.yolo)
+    def yolo(self,data):
+        color_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+        detect_list = [39,41] # Class of detected objects
+        results = self.model.predict(img)
+        for r in results:   
+            annotator = Annotator(color_frame)
+            boxes = r.boxes
 
-def main(args):
-  ve = Vision_Engine()
-  rospy.init_node('Vision_Engine', anonymous=True)
-  try:
+            for box in boxes:
+            
+                b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
+                c = box.cls # Class of the Object
+                pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
+                x = box.xywh[0][0].detach().cpu().numpy()
+                y = box.xywh[0][1].detach().cpu().numpy()
+                point = int(x), int(y)
+                if c in detect_list:
+                    depth = self.get_depth((point[1],point[0]))
+                    D_point = self.deproject_pixel_to_point((point[0],point[1]),depth)
+                    if cv2.waitKey(1) == ord('s'):
+                        try:
+                        # thread = threading.Thread(target=qr_scanner(color_frame))
+                        # thread.start()
+                            color_frame = qr_scanner(color_frame)
+                        except:
+                            print("QR Error")
+                    
+                    if cv2.waitKey(1) == ord('x'):                   
+                        try:
+                            thread = threading.Thread(target=solve(color_frame))
+                            thread.start()
+                        #color_frame = solve(color_frame)
+                        except:
+                            print("Circle Error")
+                    if cv2.waitKey(1) == ord('m'):                   
+                        try:
+                            thread = threading.Thread(target=motion(color_frame))
+                            thread.start()
+                        #color_frame = solve(color_frame)
+                        except:
+                            print("Motion Error")        
+                      
+                    angle = np.abs(90/640*x-45) # Get Angle from the center
+                    cv2.circle(color_frame, point, 4, (0, 0, 255)) # Center of the camera
+                    cv2.circle(color_frame, (320,240), 4, (0, 0, 255)) # Center of the detected object
+                    annotator.box_label(b, self.model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
+
+        color_frame = annotator.result()  
+        cv2.imshow('YOLO V8 Detection', color_frame)  
+        cv2.waitKey(1)
+    def callback_depth(self, data):
+        self.depth_image = self.bridge.imgmsg_to_cv2(data, desired_encoding="passthrough")
+
+    def get_depth(self, cod):
+        cv_image_meters = self.depth_image * self.depth_scale
+        return cv_image_meters[cod]
+
+    def callback_info(self, data):
+        self.camera_info = data
+        
+    def deproject_pixel_to_point(self, pixel, depth):
+        # Get the camera intrinsics
+        fx = self.camera_info.K[0]
+        fy = self.camera_info.K[4]
+        cx = self.camera_info.K[2]
+        cy = self.camera_info.K[5]
+
+        # Convert pixel coordinates to image plane coordinates
+        x = (pixel[0] - cx) * depth / fx
+        y = (pixel[1] - cy) * depth / fy
+        z = depth
+
+        return [x, y, z]
+    
+if __name__ == "__main__":
+    rospy.init_node('depth_subscriber', anonymous=True)
+    ds = PointCloudGenerator()
     rospy.spin()
-  except KeyboardInterrupt:
-    print("Shutting down")
-  cv2.destroyAllWindows()
-
-if __name__ == '__main__':
-    main(sys.argv)

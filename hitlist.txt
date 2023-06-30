@@ -6,3 +6,4 @@
 ['class:39/bottle', ' Object: 2', ' Pos: ', (989, 981, 108)]
 ['class:41/cup', ' Object: 1', ' Pos: ', (19, 997, 98)]
 ['class:41/cup', ' Object: 2', ' Pos: ', (990, 17, 49)]
+['class:41/cup', ' Object: 1', ' Pos: ', (0, 0, 0)]
