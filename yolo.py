@@ -119,7 +119,13 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list:
-                
+                if cv2.waitKey(1) & 0xFF == ord('m'):
+                    x = int(input('X'))
+                    y = int(input('Y'))
+                    z = int(input('Z'))
+                    map[robot] = 0
+                    robot = (x,y,z)
+                    map[robot] = 100
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
