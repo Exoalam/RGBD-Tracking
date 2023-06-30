@@ -99,6 +99,7 @@ while True:
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
     map[0,0,0]['class'] = -99
     map[0,0,0]['hit'] = 100
+    robot = (0,0,0)
     results = model.predict(img)
     for r in results:
         
