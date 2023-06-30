@@ -98,6 +98,7 @@ while True:
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
     map[0,0,0]['class'] = -99
+    map[0,0,0]['hit'] = 100
     results = model.predict(img)
     for r in results:
         
@@ -117,7 +118,7 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list:
-                map[0,0,0]['hit'] += 1
+                
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
