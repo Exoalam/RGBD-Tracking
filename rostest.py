@@ -61,6 +61,13 @@ class Vision_Engine:
                         #color_frame = solve(color_frame)
                     except:
                         print("Circle Error")
+                if cv2.waitKey(1) == ord('m'):                   
+                    try:
+                        thread = threading.Thread(target=motion(color_frame))
+                        thread.start()
+                        #color_frame = solve(color_frame)
+                    except:
+                        print("Motion Error")        
                       
                 # points = dc.Global_points(point[0],point[1]) 
                 # depth = points[0][2] # Get Z value
@@ -75,6 +82,33 @@ class Vision_Engine:
       cv2.imshow('YOLO V8 Detection', color_frame)  
     except CvBridgeError as e:
       print(e)
+      
+def motion(frame):
+    frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, frame2 = cv2.threshold(frame2, 30, 255, cv2.THRESH_BINARY_INV)
+    kernel = np.ones((5,5),np.uint8)
+    frame3 = cv2.morphologyEx(frame2, cv2.MORPH_CLOSE, kernel, iterations=2)
+    # frame3 = cv2.erode(frame2, kernel, iterations=2)
+    # frame3 = 255 - frame3
+    contours, _ = cv2.findContours(frame3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    max_area = 0
+    max_contour = None
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > max_area:
+            max_area = area
+            max_contour = contour
+
+    if max_contour is not None:
+        x, y, w, h = cv2.boundingRect(max_contour)
+
+        cx = x + w // 2
+        cy = y + h // 2
+
+    frame = cv2.circle(frame, (cx, cy), 5, (255, 0, 0), 2)
+    cv2.imshow('Frame', frame)
+    cv2.waitKey(0)
 
 # Circle Detection
 def calculate_line_angle(line_endpoint):
