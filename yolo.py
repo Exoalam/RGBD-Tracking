@@ -114,10 +114,10 @@ while True:
             w = box.xywh[0][2].detach().cpu().numpy()
             h = box.xywh[0][3].detach().cpu().numpy()
             y = y.detach().cpu().numpy()
-            x = x.detach().cpu().numpy()
-            map[0,0,0]['hit'] += 1
+            x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list:
+                map[0,0,0]['hit'] += 1
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
