@@ -84,9 +84,6 @@ def calc_distance(depth_info,x,y,depth):
 model = YOLO('yolov8n.pt')
 dc = DepthCamera()
 target_dis = 1
-# cap = cv2.VideoCapture(4)
-# cap.set(3, 640)
-# cap.set(4, 480)
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
 detect_list = [39,41]
@@ -118,76 +115,27 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()
             point = int(x), int(y)
-            old_data = [(0,0,0),0]
             if c in detect_list:
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
-                # distance = depth_frame[pt1[0]:pt1[0]+int(w),pt1[1]:pt1[1]+int(h)]
-                # distance = np.average(distance)
-                # idx = np.argwhere(depth_frame == distance)
-                #print(global_cod[point[0],point[1]])
-                # distance = savgol_filter(distance, window_length=10, polyorder=5)
-                # distance = np.median(distance)
-                #distance = numpy.abs(distance*numpy.cos((45/320)*numpy.abs(int(x)-320)))
-                # x = int(x)-320
-                # y = 240-int(y)
-                # # x = distance*numpy.sin((45/320)*numpy.abs(int(x)-320))
-                # # y = distance*numpy.sin((30/240)*numpy.abs(240-int(y)))
                 depth = points[0][2]
                 D_point = calc_distance(depth_info,x,y,depth)
-                
-       
-                #depth = numpy.abs(depth*numpy.cos((45/320)*numpy.abs(int(x)-320)))
-                height = h*.8
-                width = w*.8
-                # angle = calculate_angle(depth_info, x, round(y+height/2), x, round(y-height/2))
-                # depth1 = depth_info.get_distance(x, round(y+height/2))
-                # depth2 = depth_info.get_distance(x, round(y-height/2))
-                # height = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                # angle = calculate_angle(depth_info, round(x+width/2), y, round(x-width/2), y)
-                # depth1 = depth_info.get_distance(round(x+width/2), y)
-                # depth2 = depth_info.get_distance(round(x-width/2), y)
-                # width = np.sqrt(depth1 ** 2 + depth2 ** 2 - 2*depth1*depth2*np.cos(angle))
-                #angle = calculate_angle_2d((x,y),(320,240))
                 angle = np.abs(90/640*x-45)
                 dis = np.abs(dis * np.cos(angle))
-                print(angle)
-                print(dis)
                 static_accuracy = 100 - np.abs(target_dis-D_point[2])*100/target_dis
                 angled_accuracy = 100 - np.abs(dis-D_point[2])*100/dis
                 data.append([round(angle,2), target_dis, round(dis,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
                 map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
-                # distance = np.linalg.norm(D_point - old_data[0]) * 100
-                
-                # if angle > 0 and angle < 10:
-                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 99
-                # if angle > 10 and angle < 20:
-                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 98   
-                # if angle > 30 and angle < 40:
-                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 97 
-                # if angle > 40:
-                #     map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['accuracy'] = 95                                                       
-                # print(idx)
-                # distance *= np.cos(angle)
-                # if idx.shape[0] != 0:
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
                 cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
-                #hit_map[round(D_point[2]*100),round(D_point[0]*100+320)] += 1 
-                # annotator.box_label(b, model.names[int(c)]+" x:"+str(int(x))+" y:"+str(int(y))+" z:"+str(int(distance))+" Height:"+str(int(height))+" Width:"+str(int(width)))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:
                     text.remove(c)
-                    #f = open("/home/shuvo/RGBD-Tracking/Map.txt", "w")
-                    #f.write(str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2)) + '\n')
-                    #f.close()
                     with open('Map.txt', 'a') as file:
-                        # Move the file pointer to the end of the file
-                        file.seek(0, 2)  # 2 indicates moving to the end of the file
-
-
+                        file.seek(0, 2)
                         new_object = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))
                         file.write(new_object + '\n')
                     
