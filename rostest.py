@@ -1,3 +1,4 @@
+from __future__ import print_function
 from ultralytics import YOLO
 import cv2
 import numpy
@@ -16,6 +17,64 @@ from std_msgs.msg import String
 import sys
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+
+class Vision_Engine:
+
+  def __init__(self):
+    #self.image_pub = rospy.Publisher("image_topic_2",Image)
+
+    self.bridge = CvBridge()
+    self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.callback)
+    self.model = YOLO('yolov8n.pt')
+
+  def callback(self,data):
+    try:
+      color_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
+      img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+      detect_list = [39,41] # Class of detected objects
+      results = self.model.predict(img)
+      for r in results:   
+        annotator = Annotator(color_frame)
+        boxes = r.boxes
+
+        for box in boxes:
+            
+            b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
+            c = box.cls # Class of the Object
+            pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
+            x = box.xywh[0][0].detach().cpu().numpy()
+            y = box.xywh[0][1].detach().cpu().numpy()
+            point = int(x), int(y)
+            if c in detect_list or 1:
+                if cv2.waitKey(1) == ord('s'):
+                    try:
+                        # thread = threading.Thread(target=qr_scanner(color_frame))
+                        # thread.start()
+                        color_frame = qr_scanner(color_frame)
+                    except:
+                        print("QR Error")
+                    
+                if cv2.waitKey(1) == ord('x'):                   
+                    try:
+                        thread = threading.Thread(target=solve(color_frame))
+                        thread.start()
+                        #color_frame = solve(color_frame)
+                    except:
+                        print("Circle Error")
+                      
+                # points = dc.Global_points(point[0],point[1]) 
+                # depth = points[0][2] # Get Z value
+                # D_point = calc_distance(depth_info,x,y,depth) # Get x,y,z values
+                D_point = (0,0,0)
+                angle = np.abs(90/640*x-45) # Get Angle from the center
+                cv2.circle(color_frame, point, 4, (0, 0, 255)) # Center of the camera
+                cv2.circle(color_frame, (320,240), 4, (0, 0, 255)) # Center of the detected object
+                annotator.box_label(b, self.model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
+
+      color_frame = annotator.result()  
+      cv2.imshow('YOLO V8 Detection', color_frame)  
+    except CvBridgeError as e:
+      print(e)
 
 # Circle Detection
 def calculate_line_angle(line_endpoint):
@@ -237,65 +296,14 @@ def qr_scanner(image):
     # cv2.imshow('Image', image)
     # cv2.waitKey(0)
 
-# Calculate pixel to point
-def calc_distance(depth_info,x,y,depth):
-    depth_intrinsics = depth_info.profile.as_video_stream_profile().intrinsics
-    point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x, y], depth)
-    return point
-#Initialization and Camera Feedback
-bridge = CvBridge()
-image_sub = rospy.Subscriber("/camera/color/image_raw",Image)
-model = YOLO('yolov8n.pt')
-# dc = DepthCamera()
+def main(args):
+  ve = Vision_Engine()
+  rospy.init_node('Vision_Engine', anonymous=True)
+  try:
+    rospy.spin()
+  except KeyboardInterrupt:
+    print("Shutting down")
+  cv2.destroyAllWindows()
 
-while True:
-    
-    # ret, depth_frame, color_frame, depth_info = dc.get_frame()#Color is ros topic
-    color_frame = bridge.imgmsg_to_cv2(image_sub, "bgr8")
-    img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-    detect_list = [39,41] # Class of detected objects
-    results = model.predict(img)
-
-    for r in results:   
-        annotator = Annotator(color_frame)
-        boxes = r.boxes
-
-        for box in boxes:
-            
-            b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
-            c = box.cls # Class of the Object
-            pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
-            x = box.xywh[0][0].detach().cpu().numpy()
-            y = box.xywh[0][1].detach().cpu().numpy()
-            point = int(x), int(y)
-            if c in detect_list or 1:
-                if cv2.waitKey(1) == ord('s'):
-                    try:
-                        # thread = threading.Thread(target=qr_scanner(color_frame))
-                        # thread.start()
-                        color_frame = qr_scanner(color_frame)
-                    except:
-                        print("QR Error")
-                    
-                if cv2.waitKey(1) == ord('x'):                   
-                    try:
-                        thread = threading.Thread(target=solve(color_frame))
-                        thread.start()
-                        #color_frame = solve(color_frame)
-                    except:
-                        print("Circle Error")
-                      
-                # points = dc.Global_points(point[0],point[1]) 
-                # depth = points[0][2] # Get Z value
-                # D_point = calc_distance(depth_info,x,y,depth) # Get x,y,z values
-                D_point = [[0],[0],[0]]
-                angle = np.abs(90/640*x-45) # Get Angle from the center
-                cv2.circle(color_frame, point, 4, (0, 0, 255)) # Center of the camera
-                cv2.circle(color_frame, (320,240), 4, (0, 0, 255)) # Center of the detected object
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
-
-    color_frame = annotator.result()  
-    cv2.imshow('YOLO V8 Detection', color_frame)     
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
-        break  
+if __name__ == '__main__':
+    main(sys.argv)

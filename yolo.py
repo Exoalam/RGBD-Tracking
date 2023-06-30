@@ -16,6 +16,7 @@ import csv
 import rospy
 from std_msgs.msg import String
 
+
 data = []
 
 custom_dtype = np.dtype([
@@ -23,7 +24,7 @@ custom_dtype = np.dtype([
     ('accuracy', np.int8),
     ('class', np.int8)       
 ])
-map = np.zeros((200, 200, 200), dtype=custom_dtype)
+map = np.zeros((1000, 1000, 1000), dtype=custom_dtype)
 pub_string = ""
 def max_hit(points):
     final_list = []

@@ -1,1 +1,8 @@
 
+['class:39/bottle', ' Object: 1', ' Pos: ', (29, 16, 130)]
+['class:41/cup', ' Object: 1', ' Pos: ', (7, 33, 78)]
+['class:41/cup', ' Object: 2', ' Pos: ', (53, 31, 109)]
+['class:39/bottle', ' Object: 1', ' Pos: ', (983, 989, 111)]
+['class:39/bottle', ' Object: 2', ' Pos: ', (989, 981, 108)]
+['class:41/cup', ' Object: 1', ' Pos: ', (19, 997, 98)]
+['class:41/cup', ' Object: 2', ' Pos: ', (990, 17, 49)]

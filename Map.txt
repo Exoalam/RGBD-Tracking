@@ -12,3 +12,17 @@ cup x:-0.13 y:0.32 z:0.77
 bottle x:-0.3 y:0.16 z:1.2
 cup x:-0.13 y:0.33 z:0.78
 bottle x:-0.3 y:0.15 z:1.2
+cup x:0.23 y:0.32 z:0.66
+bottle x:0.14 y:0.17 z:1.28
+bottle x:0.14 y:0.14 z:1.26
+cup x:0.54 y:0.31 z:1.11
+cup x:0.07 y:0.33 z:0.78
+bottle x:0.29 y:0.16 z:1.3
+bottle x:0.29 y:0.16 z:1.3
+cup x:0.55 y:0.32 z:1.12
+cup x:0.12 y:0.02 z:0.58
+cup x:0.12 y:0.04 z:0.6
+bottle x:-0.1 y:-0.07 z:1.2
+cup x:-0.09 y:0.26 z:0.58
+cup x:-0.1 y:0.22 z:0.48
+bottle x:-0.15 y:-0.06 z:1.12
