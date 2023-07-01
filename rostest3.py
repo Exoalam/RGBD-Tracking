@@ -277,7 +277,7 @@ def solve(frame, weights = 'best.pt', save_file = False):
         save_info(stringify(circle_infos, line_angles, get_positions(line_angles)))
 
     string1 = stringify(circle_infos, line_angles, get_positions(line_angles))
-    cv2.waitKey(1)  
+    # cv2.waitKey(1)  
     # return cropped_frames_drawn[0]
     cv2.imshow('circle', cropped_frames_drawn[0])
     cv2.waitKey(1)  
@@ -358,7 +358,7 @@ class PointCloudGenerator:
         self.depth_image = None
         self.camera_info = None
         self.depth_scale = 0.001
-        self.model = YOLO('yolov8n.pt')
+        self.model = YOLO('best.pt')
         self.pub = rospy.Publisher('chatter', String, queue_size=10)
         self.sub_depth = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth)
         self.sub_info = rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.callback_info)
@@ -374,7 +374,7 @@ class PointCloudGenerator:
     def yolo(self,data):
         color_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
         img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-        detect_list = [39,41] # Class of detected objects
+        detect_list = range(24) # Class of detected objects
         results = self.model.predict(img)
         for r in results:   
             annotator = Annotator(color_frame)
