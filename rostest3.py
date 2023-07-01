@@ -14,8 +14,34 @@ import csv
 import rospy
 from std_msgs.msg import String
 import sys
+from scipy.spatial import distance
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+obj_info = []
+position_data =[]
+custom_dtype = np.dtype([
+    ('hit', np.int8),       
+    ('accuracy', np.int8),
+    ('class', np.int8)       
+])
+map = np.zeros((1000, 1000, 1000), dtype=custom_dtype)
+pub_string = ""
+def max_hit(points):
+    final_list = []
+    dis = 0
+    for p in points:
+        point_list = []
+        value_list = []
+        for point in points:
+            dis = distance.euclidean(point, p)
+            if dis < 20:
+                point_list.append(point)
+                value_list.append(map[point]['hit'])
+        max_point = point_list[value_list.index(max(value_list))]
+        if max_point not in final_list:        
+            final_list.append(max_point)
+    return final_list  
+
 def motion(frame):
     frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     _, frame2 = cv2.threshold(frame2, 30, 255, cv2.THRESH_BINARY_INV)
@@ -40,8 +66,9 @@ def motion(frame):
         cy = y + h // 2
 
     frame = cv2.circle(frame, (cx, cy), 5, (255, 0, 0), 2)
-    cv2.imshow('Frame', frame)
-    cv2.waitKey(0)
+    # cv2.imshow('Frame', frame)
+    # cv2.waitKey(0)
+    return frame
 
 # Circle Detection
 def calculate_line_angle(line_endpoint):
@@ -238,7 +265,7 @@ def save_info(save_data):
 
     
 
-def solve(frame, weights = 'yolov8n.pt', save_file = False):
+def solve(frame, weights = 'best.pt', save_file = False):
 
     circle_infos = find_circle([frame])
     line_endpoints, circle_infos = find_line_points([frame], circle_infos)
@@ -249,9 +276,11 @@ def solve(frame, weights = 'yolov8n.pt', save_file = False):
         save_info(stringify(circle_infos, line_angles, get_positions(line_angles)))
 
     string1 = stringify(circle_infos, line_angles, get_positions(line_angles))
+    cv2.waitKey(1)  
     # return cropped_frames_drawn[0]
     cv2.imshow('circle', cropped_frames_drawn[0])
-    cv2.waitKey(0)  
+    cv2.waitKey(1)  
+
 
 
 # QR Scanner
@@ -261,7 +290,67 @@ def qr_scanner(image):
     cv2.putText(image, str(val), (20, 20), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA, False)
     return image
     # cv2.imshow('Image', image)
-    # cv2.waitKey(0)
+    # cv2.waitKey(0)\
+     
+def thermal(frame):
+
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Split the image into 8 segments
+    height, width = gray.shape[:2]
+    segment_width = width // 4
+    segment_height = height // 2
+    segments = [
+        gray[:segment_height, :segment_width],           # Top-left segment
+        gray[:segment_height, segment_width:2*segment_width],   # Top-right segment
+        gray[:segment_height, 2*segment_width:3*segment_width],   # Top-middle segment
+        gray[:segment_height, 3*segment_width:],   # Top-right segment
+        gray[segment_height:, :segment_width],           # Bottom-left segment
+        gray[segment_height:, segment_width:2*segment_width],   # Bottom-right segment
+        gray[segment_height:, 2*segment_width:3*segment_width],   # Bottom-middle segment
+        gray[segment_height:, 3*segment_width:],   # Bottom-right segment
+    ]
+
+    # Calculate the average temperature for each segment
+    segment_temperatures = []
+    for segment in segments:
+        average_temp = np.mean(segment)
+        segment_temperatures.append(average_temp)
+
+    # Find the index of the missing circle based on the coldest segment
+    missing_circle_index = np.argmin(segment_temperatures)
+    print(missing_circle_index)
+
+
+    if missing_circle_index == 1:
+        angle_degrees = 360
+    elif missing_circle_index == 2:
+        angle_degrees = 45
+    elif missing_circle_index == 3:
+        angle_degrees = 90
+    elif missing_circle_index == 4:
+        angle_degrees = 135
+    elif missing_circle_index == 5: #47
+        angle_degrees = 180
+    elif missing_circle_index == 6:
+        angle_degrees = 225
+    elif missing_circle_index == 7:
+        angle_degrees = 270
+    elif missing_circle_index == 0:
+        angle_degrees = 315
+
+    print("Angle:", angle_degrees, "Degrees")
+
+    # Draw a semi-circle at the location of the missing circle
+    result = frame.copy()
+    center_x = (2 * (missing_circle_index % 4) + 1) * segment_width // 2
+    center_y = segment_height + (missing_circle_index // 4) * segment_height
+    cv2.circle(result, (center_x, center_y), 20, (0, 0, 255), 2)
+    cv2.ellipse(result, (center_x, center_y), (20, 20), 0, angle_degrees, angle_degrees + 180, (0, 0, 255), 2)
+
+    return result
+        
 class PointCloudGenerator:
     def __init__(self):
         self.bridge = CvBridge()
@@ -269,9 +358,18 @@ class PointCloudGenerator:
         self.camera_info = None
         self.depth_scale = 0.001
         self.model = YOLO('yolov8n.pt')
+        self.pub = rospy.Publisher('chatter', String, queue_size=10)
         self.sub_depth = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth)
         self.sub_info = rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.callback_info)
         self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.yolo)
+    
+    def talker(self,x,y):
+        my_dict = {'x': str(x), 'y': str(y)}
+        json_str = json.dumps(my_dict)  # Convert dict to JSON string
+        rospy.loginfo(json_str)
+        self.pub.publish(json_str)  
+
+    
     def yolo(self,data):
         color_frame = self.bridge.imgmsg_to_cv2(data, "bgr8")
         img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
@@ -289,33 +387,62 @@ class PointCloudGenerator:
                 x = box.xywh[0][0].detach().cpu().numpy()
                 y = box.xywh[0][1].detach().cpu().numpy()
                 point = int(x), int(y)
+ 
                 if c in detect_list:
                     depth = self.get_depth((point[1],point[0]))
                     D_point = self.deproject_pixel_to_point((point[0],point[1]),depth)
-                    if cv2.waitKey(1) == ord('s'):
+                    if cv2.waitKey(1) == ord('s') or c == 18:
                         try:
                         # thread = threading.Thread(target=qr_scanner(color_frame))
                         # thread.start()
                             color_frame = qr_scanner(color_frame)
                         except:
                             print("QR Error")
-                    
-                    if cv2.waitKey(1) == ord('x'):                   
+                    if cv2.waitKey(1) == ord('g'):
+                            indices = np.where(map['hit'] > 1)
+                            points = list(zip(indices[0], indices[1], indices[2]))
+                            points = max_hit(points)
+                            data_actual = []
+                            for i in detect_list:
+                                count = 1
+                                for x in points:
+                                    if map[x]['class'] == i:
+                                        cls = map[x]['class']
+                                        data_actual.append(['class:'+str(cls)+'/'+self.model.names[int(cls)],' Object: '+str(count), ' Pos: ',x])
+                                        count += 1
+
+                            with open('hitlist.txt', 'a') as file:
+                                file.seek(0, 2) 
+                                for i in data_actual:
+                                    file.write(str(i)+'\n')
+
+                            for point in points:
+                                self.talker(point[2],point[0])
+                                
+                    if cv2.waitKey(1) == ord('t'):
                         try:
-                            thread = threading.Thread(target=solve(color_frame))
-                            thread.start()
-                        #color_frame = solve(color_frame)
+                            color_frame = thermal(color_frame)
+                        except:
+                            print('Thermal Error')
+                            
+                    if cv2.waitKey(1) == ord('x') or c == 1:                   
+                        try:
+                            # thread = threading.Thread(target=solve(color_frame))
+                            # thread.start()
+                            color_frame = solve(color_frame)
                         except:
                             print("Circle Error")
-                    if cv2.waitKey(1) == ord('m'):                   
+                    if cv2.waitKey(1) == ord('m') or c == 2:                   
                         try:
-                            thread = threading.Thread(target=motion(color_frame))
-                            thread.start()
-                        #color_frame = solve(color_frame)
+                            # thread = threading.Thread(target=motion(color_frame))
+                            # thread.start()
+                            color_frame = motion(color_frame)
                         except:
                             print("Motion Error")        
                       
                     angle = np.abs(90/640*x-45) # Get Angle from the center
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
+                    map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
                     cv2.circle(color_frame, point, 4, (0, 0, 255)) # Center of the camera
                     cv2.circle(color_frame, (320,240), 4, (0, 0, 255)) # Center of the detected object
                     annotator.box_label(b, self.model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
@@ -348,6 +475,17 @@ class PointCloudGenerator:
         return [x, y, z]
     
 if __name__ == "__main__":
+    detect_list = range(24)
     rospy.init_node('depth_subscriber', anonymous=True)
     ds = PointCloudGenerator()
     rospy.spin()
+    
+
+
+    #     datax.append([point[0],point[1],point[2],map[point]['hit']])
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # xs, ys, zs, hits = zip(*datax)
+    # ax.scatter(xs, ys, zs, s=hits)
+    # plt.show()
