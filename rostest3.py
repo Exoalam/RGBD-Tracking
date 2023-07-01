@@ -208,8 +208,9 @@ def draw_shapes(list_of_frames, list_of_circles, list_of_endpoints, list_of_angl
         # Draw lines
         for endpoint, angle in zip(endpoints, angles):
             ((x_1, y_1), (x_2, y_2)) = endpoint
-            cv2.line(output_frame, (x_1, y_1), (x_2, y_2), (0, 0, 255), 2)
-            cv2.putText(output_frame, str(angle), (x_2 + 10, y_2 + 10), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA, False)
+            cv2.line(output_frame, (x_1, y_1), (x_2, y_2), (255, 0, 0), 2)
+            #cv2.putText(output_frame, str(angle), (x_2 + 10, y_2 + 10), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA, False)
+            cv2.putText(output_frame, str(get_position(angle)), (x_2 + 10, y_2 + 10), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA, False)
         
         result_frames.append(output_frame)
 
