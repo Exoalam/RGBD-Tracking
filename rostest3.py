@@ -16,6 +16,16 @@ from std_msgs.msg import String
 import sys
 from scipy.spatial import distance
 from sensor_msgs.msg import Image, CameraInfo
+import pyaudio
+import wave
+from audio_common_msgs.msg import AudioData
+audio_format = pyaudio.paInt16
+sample_rate = 16000
+channels = 1
+chunk_size = 1024
+record_duration = 10  # Duration in seconds
+output_file = 'output.wav'
+
 from cv_bridge import CvBridge, CvBridgeError
 obj_info = []
 position_data =[]
@@ -42,35 +52,42 @@ def max_hit(points):
             final_list.append(max_point)
     return final_list  
 
-def motion(frame):
-    frame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, frame2 = cv2.threshold(frame2, 30, 255, cv2.THRESH_BINARY_INV)
-    kernel = np.ones((5,5),np.uint8)
-    frame3 = cv2.morphologyEx(frame2, cv2.MORPH_CLOSE, kernel, iterations=2)
-    # frame3 = cv2.erode(frame2, kernel, iterations=2)
-    # frame3 = 255 - frame3
-    contours, _ = cv2.findContours(frame3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+def motion(frame, position):
+   position = position.astype(int)
+   
+   lower_black = np.array([0, 0, 0], dtype=np.uint8)
+   upper_black = np.array([100, 100, 100], dtype=np.uint8)
 
-    max_area = 0
-    max_contour = None
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > max_area:
-            max_area = area
-            max_contour = contour
+   focus_part = frame[position[1] - position[3]//2 : position[1] + position[3]//2, position[0]- position[2]//2 : position[0]+ position[2]//2]
 
-    if max_contour is not None:
-        x, y, w, h = cv2.boundingRect(max_contour)
+   # Create a mask for the black square
+   mask = cv2.inRange(focus_part, lower_black, upper_black)
 
-        cx = x + w // 2
-        cy = y + h // 2
+   # Find contours in the mask
+   contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    frame = cv2.circle(frame, (cx, cy), 5, (255, 0, 0), 2)
-    # cv2.imshow('Frame', frame)
-    # cv2.waitKey(0)
-    return frame
+   min_distance = np.inf
+   target_contour = None
 
-# Circle Detection
+   for contour in contours:
+       area = cv2.contourArea(contour)
+       dist1 = abs(cv2.pointPolygonTest(contour,(focus_part.shape[0] // 2,focus_part.shape[1] // 2),True))
+       focus_area = focus_part.shape[0] * focus_part.shape[1]
+       if dist1 < min_distance and area < (focus_area // 20) and area > (focus_area // 60):
+           min_distance = dist1
+           target_contour = contour
+
+   if target_contour is not None:
+       x, y, w, h = cv2.boundingRect(target_contour)
+       x= x+ position[0] - position[2]//2
+       y= y+ position[1] - position[3]//2
+       cx = x + w // 2
+       cy = y + h // 2
+
+       frame = cv2.circle(frame, (cx, cy), 5, (0, 0,255), 2)
+   
+   return frame
+
 def calculate_line_angle(line_endpoint):
     ydiff = line_endpoint[0][1] - line_endpoint[1][1] # Row diff
     xdiff = line_endpoint[0][0] - line_endpoint[1][0] # Col diff
@@ -238,49 +255,242 @@ def get_positions(angles):
         result.append(temp_result)
     return result
 
-def stringify(circle_infos, angles, positions):
-
-    result = {
-        "crops": []
-    }
-
-    for idx, (frame_circles, frame_angles, frame_positions) in enumerate(zip(circle_infos, angles, positions)):
-        temp_dict = {}
-        temp_dict["crop_no"] = idx
-        temp_dict["circles"] = []
-        for idx2, (circle, angle, position) in enumerate(zip(frame_circles, frame_angles, frame_positions)):
-            temp_dict2 = {}
-            temp_dict2["angle"] = str(angle)
-            temp_dict2["position"] = str(position)
-            temp_dict2["circle_no"] = idx2
-            temp_dict["circles"].append(temp_dict2)
-        result["crops"].append(temp_dict)
+def adjust_gamma(image, gamma=1.0):
+	# build a lookup table mapping the pixel values [0, 255] to
+	# their adjusted gamma values
+    # invGamma = 1.0 / gamma
+	# table = [((i / 255.0) ** invGamma) * 255 for i in range(0, 256)]
+    invGamma = 1.0 / gamma
+    table = [((i / 255.0) ** invGamma) * 255 for i in range(0, 256)]
     
-    result_str = json.dumps(result, indent=4)
+    for i in range(0, 256):
+        if table[i] > 255:
+            table[i] = 255
+    
+    table = np.array(table).astype(np.uint8)
+    return cv2.LUT(image, table)    
+
+
+def stringify(positions):
+    positions = positions.split(',')
+    temp_dict = {}
+    temp_dict["circles"] = []
+    for idx2, position in enumerate(positions):
+        temp_dict2 = {}
+        temp_dict2["circle_no"] = idx2
+        temp_dict2["orientation"] = position
+        temp_dict["circles"].append(temp_dict2)
+    result_str = json.dumps(temp_dict, indent=4)
     return result_str
+
 
 def save_info(save_data):
     f = open('saved_data.txt', 'w')
     f.write(save_data)
     f.close()
 
+def extract_single_circles(frame):
+    """
+        Parameter:
+            frame (numpy.ndarray): BGR frame.
+        Returns:
+            circles (list): Binary (Tresholded) frames, each containing one circle
+    """
+    # print('extract_single_circle dhukse')
+    circles = []
+    img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    img = cv2.equalizeHist(img)
+    cv2.imshow('Equalized', img)
+    # img = img.astype(np.float32)
+    img = adjust_gamma(img, 0.4)
+    # img = cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX)
+    # img = img.astype(np.uint8)
+    dim = (img.shape[0], img.shape[1])
+    
+    cv2.imshow('Gray', img)
+    img = cv2.GaussianBlur(img, (5, 5), 3, 0)
+    cv2.imshow('Blur', img)
+    # img = adjust_gamma(img, 0.4)
+    cv2.imshow('Blur + gamma', img)
+    _, threshold_img = cv2.threshold(img, 50, 255, cv2.THRESH_BINARY_INV)
+
+    # threshold_img = cv2.adaptiveThreshold(img, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,11,4)
+    # threshold_img = cv2.morphologyEx(threshold_img, cv2.MORPH_CLOSE, np.ones((5,5), dtype=np.uint8))
+    
+    cv2.imshow('Threshold', threshold_img)
+    # threshold_img = cv2.morphologyEx(threshold_img, cv2.MORPH_CLOSE, np.ones((5,5), dtype=np.uint8))
+    # threshold_img = cv2.morphologyEx(threshold_img, cv2.MORPH_CLOSE, np.ones((5,5), dtype=np.uint8))
+    # threshold_img = cv2.morphologyEx(threshold_img, cv2.MORPH_CLOSE, np.ones((5,5), dtype=np.uint8))
+    # threshold_img = cv2.morphologyEx(threshold_img, cv2.MORPH_CLOSE, np.ones((5,5), dtype=np.uint8))
+    
+    # print(threshold_img.shape)
+    # print('threshold done')
+    loop_count = 0
+    while True:
+        loop_count += 1
+
+        if loop_count > 9:
+            return None
+        # threshold_img = 255 - threshold_img
+        
+        vertical_mask = np.zeros(dim, dtype = img.dtype)
+        vertical_mask[:, dim[1]//2] = 255
+
+        vertical_mask = cv2.bitwise_and(vertical_mask, threshold_img)
+        vertical_mask[:, dim[1]//2] = 255
+
+        vertical_mask_result = cv2.bitwise_and(vertical_mask, threshold_img)
+
+        locations = np.where(vertical_mask_result == 255)
+        # print(f'locations paisi {len(locations[0])}')
+    
+        if locations[0].shape[0] == 0:
+            break
+
+        min_idx = np.argmin(locations[0])
+        min_point = (locations[1][min_idx], locations[0][min_idx])
+        
+        max_idx = np.argmax(locations[0])
+        max_point = (locations[1][max_idx], locations[0][max_idx])
+
+        mask2 = np.zeros((dim[0] + 2, dim[1] + 2), dtype=img.dtype)
+        mask3 = np.zeros((dim[0] + 2, dim[1] + 2), dtype=img.dtype)
+
+        cv2.imshow(f'Trying to detect circle {loop_count - 1}', threshold_img)
+        # cv2.circle(mask2, min_point, 5, 255, 2)
+        floodflags = 4
+        floodflags |= cv2.FLOODFILL_MASK_ONLY
+        floodflags |= (255 << 8)
+        
+        
+        # print('Floodfill shuru hocche')
+        cv2.floodFill(threshold_img, mask2, min_point, 255, (10,)*3, (10,)*3, 4 + (255 << 8) + cv2.FLOODFILL_MASK_ONLY)
+        cv2.floodFill(threshold_img, mask3, max_point, 255, (10,)*3, (10,)*3, 4 + (255 << 8) + cv2.FLOODFILL_MASK_ONLY)
+        # print(f'Flood fill sesh')
+        # cv2.imshow('Mask 2', mask2)
+        # cv2.imshow('Mask 3', mask3)
+        if np.where(mask2 == 255)[0].shape[0] > np.where(mask3 == 255)[1].shape[0]:
+            final_mask = mask2
+        else:
+            final_mask = mask3
+        
+        final_mask = 255 - final_mask
+
+        final_mask = cv2.resize(final_mask, (dim[1], dim[0]), cv2.INTER_AREA)
+
+        circles.append(final_mask)
+        
+    
+        threshold_img = cv2.bitwise_and(threshold_img, final_mask)
+    return circles
+
+
+def get_circle_orientation(frame):
+
+    
+    dim = frame.shape
+
     
 
+    contours, _ = cv2.findContours(255 - frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    min_area = 0
+    min_contour = None
+    contour_sorted = []
+    for contour in contours:
+        # area = cv2.contourArea(contour)
+        x, y, w, h = cv2.boundingRect(contour)
+        area = w * h
+        if min_contour is None:
+            min_contour = contour
+            min_area = w * h
+        if area < min_area:
+            min_area = area
+            min_contour = contour
+
+
+    if min_contour is not None:
+        x, y, w, h = cv2.boundingRect(min_contour)
+        upper_left = (x, y)
+        lower_right = (x + w, y + h)
+        frame = frame[upper_left[1]: lower_right[1], upper_left[0]: lower_right[0]]
+    else:
+        return None
+    
+    frame = cv2.resize(frame, (1024, 1024), cv2.INTER_AREA)
+    _, frame = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)
+    dim = frame.shape
+
+    corner_pts = [(dim[1]//2, 0), (dim[1], 0), (dim[1], dim[0]//2), (dim[1], dim[0]), (dim[1]//2, dim[0]), (0, dim[0]), (0, dim[0]//2), (0, 0)]
+    orientation = ['T', 'TR', 'R', 'BR', 'B', 'BL', 'L', 'TL']
+    differences = []
+    locations = np.where(frame == 0)
+
+    center_pt = (int(np.round(np.average(locations[1]))), int(np.round(np.average(locations[0]))))
+
+    for idx, corner in enumerate(corner_pts):
+        final_mask = frame.copy()
+        final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_CLOSE, np.ones((3,3),np.uint8))
+        # cv2.imshow('Final Mask', final_mask)
+        test_mask = np.zeros_like(final_mask)
+        cv2.line(test_mask, center_pt, corner, 255, 2)
+        # cv2.imshow(f'test_mask {idx}', test_mask)
+        test_mask_result = cv2.bitwise_and(test_mask, final_mask)
+        differences.append(np.abs(np.where(test_mask_result == 255)[0].shape[0] - np.where(test_mask == 255)[0].shape[0]))
+
+    min_idx = np.argmin(np.array(differences))
+    print(f'{orientation[min_idx]} {differences[min_idx]}')
+    return orientation[min_idx]
+
+def get_all_circle_orientation(frame_list):
+
+    result = []
+    for frame in frame_list:
+        result.append(get_circle_orientation(frame))
+        # cv2.waitKey(0)
+    return result
+
 def solve(frame, weights = 'best.pt', save_file = False):
+    orig_frame = frame.copy()
+    circles = extract_single_circles(frame)
+    if circles is None:
+        print('Circles is None')
+        return None
+    for idx, circle in enumerate(circles):
+        cv2.imshow(f'Circle {idx}', circle)
+        # cv2.imshow(f'Circle RGB {idx}', circle[1])
 
-    circle_infos = find_circle([frame])
-    line_endpoints, circle_infos = find_line_points([frame], circle_infos)
-    line_angles = get_angle(line_endpoints)
-    cropped_frames_drawn = draw_shapes([frame], circle_infos, line_endpoints, line_angles)
-    print(stringify(circle_infos, line_angles, get_positions(line_angles)))
-    if save_file:
-        save_info(stringify(circle_infos, line_angles, get_positions(line_angles)))
+    
+    orientations = get_all_circle_orientation(circles)
+    if orientations is None:
+        print('Orientation is None')
+        return None
+    # print('orientation sesh')
+    orientation_str = ''
+    print(orientations)
+    for idx, val in enumerate(orientations):
+        if idx != 0:
+            orientation_str += ','
+        orientation_str  += orientations[idx]
+    print(orientation_str)
+    orig_frame = cv2.cvtColor(orig_frame, cv2.COLOR_BGR2GRAY)
+    # _, thresholded = cv2.threshold(orig_frame, 200, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    thresholded = cv2.adaptiveThreshold(orig_frame, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,11,2)
+    return orientation_str, thresholded
 
-    string1 = stringify(circle_infos, line_angles, get_positions(line_angles))
+
+def draw_lines(frame, circle_orientation):
+    dim = frame.shape
+    corner_pts = [(dim[1]//2, 0), (dim[1], 0), (dim[1], dim[0]//2), (dim[1], dim[0]), (dim[1]//2, dim[0]), (0, dim[0]), (0, dim[0]//2), (0, 0)]
+    orientation = ['T', 'TR', 'R', 'BR', 'B', 'BL', 'L', 'TL']
+    center_pt = (dim[1] // 2, dim[0] // 2)
+    circle_orientation = circle_orientation.split(',')
+    for orientation_str in circle_orientation:
+        idx = orientation.index(orientation_str)
+        frame = cv2.line(frame, center_pt, corner_pts[idx], (0, 0, 255), 2)
+    return frame
+    
+    # cv2.imshow('circle', cropped_frames_drawn[0])
     # cv2.waitKey(1)  
-    # return cropped_frames_drawn[0]
-    cv2.imshow('circle', cropped_frames_drawn[0])
-    cv2.waitKey(1)  
 
 
 
@@ -363,12 +573,28 @@ class PointCloudGenerator:
         self.sub_depth = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, self.callback_depth)
         self.sub_info = rospy.Subscriber("/camera/aligned_depth_to_color/camera_info", CameraInfo, self.callback_info)
         self.image_sub = rospy.Subscriber("/camera/color/image_raw",Image,self.yolo)
+        self.audio_sub = rospy.Subscriber('/audio/audio', AudioData, self.audio_callback)
     
     def talker(self,x,y):
         my_dict = {'x': str(x), 'y': str(y)}
         json_str = json.dumps(my_dict)  # Convert dict to JSON string
         rospy.loginfo(json_str)
         self.pub.publish(json_str)  
+        
+    def audio_callback(self, msg):
+        global audio_segment
+
+    
+        audio_data = msg.data
+
+        p = pyaudio.PyAudio()
+        stream = p.open(format=audio_format,
+                    channels=channels,
+                    rate=sample_rate,
+                    input=True,
+                    frames_per_buffer=chunk_size,
+                    stream_callback=audio_callback)
+
 
     
     def yolo(self,data):
