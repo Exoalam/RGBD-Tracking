@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 import cv2
 import numpy
-from ultralytics.yolo.utils.plotting import Annotator
+from ultralytics.utils.plotting import Annotator
 import pyrealsense2 as rs
 from scipy.signal import savgol_filter
 from realsense_depth import *
@@ -13,8 +13,8 @@ import json
 import threading
 import time
 import csv
-import rospy
-from std_msgs.msg import String
+# import rospy
+# from std_msgs.msg import String
 
 
 data = []
@@ -88,10 +88,10 @@ hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
 detect_list = [39,41,-99]
 text = [39,41]
-rospy.init_node('yolo_new', anonymous=True)
-pub = rospy.Publisher('/object_info', String, queue_size=10)
-thread = threading.Thread(target=call_function_periodically)
-thread.start()
+# rospy.init_node('yolo_new', anonymous=True)
+# pub = rospy.Publisher('/object_info', String, queue_size=10)
+# thread = threading.Thread(target=call_function_periodically)
+# thread.start()
 
 while True:
     
