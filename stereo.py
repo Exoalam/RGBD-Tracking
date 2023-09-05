@@ -92,8 +92,9 @@ while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+    img_shape = img.shape
     robot = (0,0,0)
-    map[robot]['hit'] = 100
+    map[robot]['hit'] = 0
     results = model.predict(img)
     for r in results:
         
@@ -127,18 +128,23 @@ while True:
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
                 D_point = calc_distance(depth_info,x,y,depth)
+                D_point[1] = D_point[1]*-1
                 angle = np.abs(90/640*x-45)
                 dis = np.abs(dis * np.cos(angle))
                 static_accuracy = 100 - np.abs(target_dis-D_point[2])*100/target_dis
                 angled_accuracy = 100 - np.abs(dis-D_point[2])*100/dis
                 data.append([round(angle,2), target_dis, round(dis,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
-                map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['hit'] += 1
-                map[round(D_point[0]*100),round(D_point[1]*100),round(D_point[2]*100)]['class'] = c
+                dx = 0
+                dy = 0
+                dx = 500+D_point[0]*100
+                dy = 500+D_point[1]*100
+                map[round(dx),round(dy),round(D_point[2]*100)]['hit'] += 1
+                map[round(dx),round(dy),round(D_point[2]*100)]['class'] = c
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
                 cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
-                p = percentage(img[0],img[1],_b[3],_b[2])
+                p = percentage(img_shape[0],img_shape[1],_b[3],_b[2])
                 #annotator.box_label(b, model.names[int(c)] + " " + str(round(float(_c), 2)) + " " + str(p) +" "+str(ratio))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2) + " Conf" + str(round(float(_c), 2)) + " Pb" + str(p) +" Rt"+str(ratio)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Pb:" + str(p) +" Rt:"+str(ratio))
                 x =  '{ "name":"John", "age":30, "city":"New York"}'
                 #pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:
@@ -186,3 +192,9 @@ with open('output.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in data:
         writer.writerow(row)
+csv_file_path = "data.csv"
+
+with open(csv_file_path, mode='w', newline='') as csv_file:
+    csv_writer = csv.writer(csv_file)
+    for row in data:
+        csv_writer.writerow(row)
