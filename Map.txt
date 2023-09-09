@@ -67,3 +67,14 @@ bottle x:-0.0 y:-0.13 z:0.48
 cup x:0.0 y:-0.0 z:0.0
 bottle x:-0.03 y:-0.11 z:0.51
 cup x:-2.59 y:0.76 z:4.26
+bottle x:-0.23 y:-0.14 z:0.54
+bottle x:-0.23 y:-0.14 z:0.55
+bottle x:-0.22 y:-0.18 z:0.54
+bottle x:-0.27 y:-0.2 z:0.57
+bottle x:-0.27 y:-0.2 z:0.58
+bottle x:-0.27 y:-0.2 z:0.57
+bottle x:-0.27 y:-0.2 z:0.57
+bottle x:-0.27 y:-0.2 z:0.57
+bottle x:-0.27 y:-0.2 z:0.58
+cup x:-0.24 y:-0.24 z:0.52
+bottle x:-0.16 y:-0.08 z:0.52

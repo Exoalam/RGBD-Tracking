@@ -145,7 +145,6 @@ while True:
                 p = percentage(img_shape[0],img_shape[1],_b[3],_b[2])
                 #annotator.box_label(b, model.names[int(c)] + " " + str(round(float(_c), 2)) + " " + str(p) +" "+str(ratio))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Pb:" + str(p) +" Rt:"+str(ratio))
-                x =  '{ "name":"John", "age":30, "city":"New York"}'
                 #pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:
                     text.remove(c)
@@ -198,3 +197,12 @@ with open(csv_file_path, mode='w', newline='') as csv_file:
     csv_writer = csv.writer(csv_file)
     for row in data:
         csv_writer.writerow(row)
+coordinate = points[0]
+ret, depth_frame, color_frame, depth_info = dc.get_frame()
+print(int(coordinate[0]))
+print(int(coordinate[1]))
+cv2.circle(color_frame, (int(coordinate[1])-500+320,int(coordinate[0])-500+240), 4, (0, 0, 255))
+cv2.imshow('YOLO V8 Detection', color_frame)     
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+  
