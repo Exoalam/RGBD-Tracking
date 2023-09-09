@@ -71,10 +71,14 @@ def calculate_angle_2d(P1, P2):
 
     return theta
 
-def calc_distance(depth_info,x,y,depth):
+# def calc_distance(depth_info,x,y,depth):
+#     depth_intrinsics = depth_info.profile.as_video_stream_profile().intrinsics
+#     point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x, y], depth)
+#     return point
+def reverse(depth_info,x,y,depth):
     depth_intrinsics = depth_info.profile.as_video_stream_profile().intrinsics
-    point = rs.rs2_deproject_pixel_to_point(depth_intrinsics, [x, y], depth)
-    return point
+    pixel = rs.rs2_project_point_to_pixel(depth_intrinsics, [x,y,depth])
+    return pixel
 
 model = YOLO('yolov8n.pt')
 dc = DepthCamera()
@@ -127,30 +131,30 @@ while True:
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
-                D_point = calc_distance(depth_info,x,y,depth)
-                D_point[1] = D_point[1]*-1
+                
+                # D_point = calc_distance(depth_info,x,y,depth)
+                # D_point[1] = D_point[1]*-1
                 angle = np.abs(90/640*x-45)
                 dis = np.abs(dis * np.cos(angle))
-                static_accuracy = 100 - np.abs(target_dis-D_point[2])*100/target_dis
-                angled_accuracy = 100 - np.abs(dis-D_point[2])*100/dis
-                data.append([round(angle,2), target_dis, round(dis,2), round(D_point[2],2), round(static_accuracy,2), round(angled_accuracy,2)])
-                dx = 0
-                dy = 0
-                dx = 500+D_point[0]*100
-                dy = 500+D_point[1]*100
-                map[round(dx),round(dy),round(D_point[2]*100)]['hit'] += 1
-                map[round(dx),round(dy),round(D_point[2]*100)]['class'] = c
+                static_accuracy = 100 - np.abs(target_dis-points[0][2])*100/target_dis
+                angled_accuracy = 100 - np.abs(dis-points[0][2])*100/dis
+                data.append([round(angle,2), target_dis, round(dis,2), round(points[0][2],2), round(static_accuracy,2), round(angled_accuracy,2)])
+                dx = 500+points[0][0]*100
+                dy = 500+points[0][1]*100
+                map[round(dx),round(dy),round(points[0][2]*100)]['hit'] += 1
+                map[round(dx),round(dy),round(points[0][2]*100)]['class'] = c
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
-                cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
+                print(points)
+                #cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
                 p = percentage(img_shape[0],img_shape[1],_b[3],_b[2])
                 #annotator.box_label(b, model.names[int(c)] + " " + str(round(float(_c), 2)) + " " + str(p) +" "+str(ratio))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Pb:" + str(p) +" Rt:"+str(ratio))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2))+ " Pb:" + str(p) +" Rt:"+str(ratio))
                 #pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
                 if c in text:
                     text.remove(c)
                     with open('Map.txt', 'a') as file:
                         file.seek(0, 2)
-                        new_object = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))
+                        new_object = str(model.names[int(c)])+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2))
                         file.write(new_object + '\n')
                     
 
@@ -198,11 +202,14 @@ with open(csv_file_path, mode='w', newline='') as csv_file:
     for row in data:
         csv_writer.writerow(row)
 coordinate = points[0]
+print(coordinate)
 ret, depth_frame, color_frame, depth_info = dc.get_frame()
-print(int(coordinate[0]))
-print(int(coordinate[1]))
-cv2.circle(color_frame, (int(coordinate[1])-500+320,int(coordinate[0])-500+240), 4, (0, 0, 255))
+x1 = float(coordinate[0])-500
+x2 = float(coordinate[1])-500
+print(x1,x2)
+points = reverse(depth_info,x1,x2,coordinate[2])
+print(points)
+cv2.circle(color_frame, (round(points[0]),round(points[1])), 4, (0, 0, 255))
 cv2.imshow('YOLO V8 Detection', color_frame)     
 cv2.waitKey(0)
 cv2.destroyAllWindows()
-  

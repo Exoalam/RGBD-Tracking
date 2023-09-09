@@ -95,11 +95,5 @@ class DepthCamera:
     
     def release(self):
         self.pipeline.stop()
+
     
-    def point_to_pixel(self,x,y,z):
-        frames = self.pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        color_intrin = color_frame.profile.as_video_stream_profile().intrinsics
-        point_3d = np.array([x, y, z])
-        pixel = rs.rs2_project_point_to_pixel(color_intrin, point_3d)
-        return pixel
