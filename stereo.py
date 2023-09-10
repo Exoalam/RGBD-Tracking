@@ -13,6 +13,7 @@ import json
 import threading
 import time
 import csv
+from serial_connector_1 import *
 # import rospy
 # from std_msgs.msg import String
 
@@ -83,6 +84,9 @@ def reverse(depth_info,x,y,depth):
 
 model = YOLO('best.pt')
 dc = DepthCamera()
+# ser_con = SerialConnector()
+# ser_con.connect('/dev/ttyUSB0')
+
 target_dis = 1
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
@@ -92,7 +96,7 @@ text = [39,41]
 # pub = rospy.Publisher('/object_info', String, queue_size=10)
 # thread = threading.Thread(target=call_function_periodically)
 # thread.start()
-
+init = 100
 while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
@@ -123,6 +127,8 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list and _c > .6:
+                cv2.imwrite('Data/Image/'+str(init)+'.png',color_frame)
+                init+=1
                 if cv2.waitKey(1) & 0xFF == ord('m'):
                     x = int(input('X: '))
                     y = int(input('Y: '))
