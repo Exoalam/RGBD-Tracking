@@ -109,3 +109,7 @@
 ['class:0/Bottle', ' Object: 3', ' Pos: ', (512, 485, 57)]
 ['class:0/Bottle', ' Object: 4', ' Pos: ', (520, 515, 50)]
 ['class:0/Bottle', ' Object: 5', ' Pos: ', (539, 475, 92)]
+['class:0/Bottle', ' Object: 1', ' Pos: ', (488, 499, 75)]
+['class:0/Bottle', ' Object: 2', ' Pos: ', (500, 500, 0)]
+['class:0/Bottle', ' Object: 1', ' Pos: ', (488, 499, 74)]
+['class:0/Bottle', ' Object: 2', ' Pos: ', (500, 500, 0)]
