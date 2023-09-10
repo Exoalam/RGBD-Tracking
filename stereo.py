@@ -131,12 +131,16 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
+<<<<<<< HEAD
             cropped = color_frame[top_left[1] : bottom_right[1], top_left[0] : bottom_right[0]]
             if c in detect_list:
                 cv2.imwrite('Data/Train/'+str(init)+'.png',cropped)
                 init+=1
                 cor = ser_con.get_orientation()
                 Train_data.append(['Data/Train/'+str(init)+'.png',cor[0],cor[1],cor[2]])
+=======
+            if c in detect_list:
+>>>>>>> d154d94 (up)
                 if cv2.waitKey(1) & 0xFF == ord('m'):
                     x = int(input('X: '))
                     y = int(input('Y: '))
