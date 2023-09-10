@@ -84,8 +84,8 @@ def reverse(depth_info,x,y,depth):
 
 model = YOLO('best.pt')
 dc = DepthCamera()
-# ser_con = SerialConnector()
-# ser_con.connect('/dev/ttyUSB0')
+ser_con = SerialConnector()
+ser_con.connect('/dev/ttyUSB0')
 
 target_dis = 1
 hit_map = np.zeros((1000,1000))
@@ -129,6 +129,7 @@ while True:
             if c in detect_list and _c > .6:
                 cv2.imwrite('Data/Image/'+str(init)+'.png',color_frame)
                 init+=1
+                print(ser_con.get_orientation())
                 if cv2.waitKey(1) & 0xFF == ord('m'):
                     x = int(input('X: '))
                     y = int(input('Y: '))
