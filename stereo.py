@@ -122,7 +122,7 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
-            if c in detect_list:
+            if c in detect_list and _c > .6:
                 if cv2.waitKey(1) & 0xFF == ord('m'):
                     x = int(input('X: '))
                     y = int(input('Y: '))
