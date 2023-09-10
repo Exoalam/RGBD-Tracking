@@ -78,6 +78,7 @@ def calculate_angle_2d(P1, P2):
 def reverse(depth_info,x,y,depth):
     depth_intrinsics = depth_info.profile.as_video_stream_profile().intrinsics
     pixel = rs.rs2_project_point_to_pixel(depth_intrinsics, [x,y,depth])
+
     return pixel
 
 model = YOLO('best.pt')
@@ -85,7 +86,7 @@ dc = DepthCamera()
 target_dis = 1
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
-detect_list = [0,39,41,-99]
+detect_list = [0]
 text = [39,41]
 # rospy.init_node('yolo_new', anonymous=True)
 # pub = rospy.Publisher('/object_info', String, queue_size=10)
