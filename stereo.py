@@ -117,6 +117,7 @@ while True:
             w = box.xywh[0][2].detach().cpu().numpy()
             h = box.xywh[0][3].detach().cpu().numpy()
             _c = box.conf.detach().cpu().numpy()
+            print(_c)
             ratio = w/h
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
