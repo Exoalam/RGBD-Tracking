@@ -85,7 +85,7 @@ dc = DepthCamera()
 target_dis = 1
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
-detect_list = [0,39,41,-99]
+detect_list = [0]
 text = [39,41]
 # rospy.init_node('yolo_new', anonymous=True)
 # pub = rospy.Publisher('/object_info', String, queue_size=10)
@@ -116,6 +116,7 @@ while True:
             w = box.xywh[0][2].detach().cpu().numpy()
             h = box.xywh[0][3].detach().cpu().numpy()
             _c = box.conf.detach().cpu().numpy()
+            print(_c)
             ratio = w/h
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
