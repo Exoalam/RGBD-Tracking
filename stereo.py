@@ -117,6 +117,7 @@ while True:
             c = box.cls
             _b = box.xywh[0].detach().cpu().numpy()
             pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
+            u, v, j, k = box.xywh[0].detach().cpu().numpy()
             x = box.xywh[0][0]
             y = box.xywh[0][1]
             w = box.xywh[0][2].detach().cpu().numpy()
@@ -127,8 +128,9 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
+            cropped_object = color_frame[v:v+k, u:u+j]
             if c in detect_list and _c > .6:
-                cv2.imwrite('Data/Train/'+str(init)+'.png',color_frame)
+                cv2.imwrite('Data/Train/'+str(init)+'.png',cropped_object)
                 init+=1
                 cor = ser_con.get_orientation()
                 Train_data.append(['Data/Train/'+str(init)+'.png',cor[0],cor[1],cor[2]])
