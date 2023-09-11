@@ -199,11 +199,11 @@ datax = []
 for i, point in enumerate(points):
     datax.append([point[0],point[1],point[2],map[point]['hit']])
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-xs, ys, zs, hits = zip(*datax)
-ax.scatter(xs, ys, zs, s=hits)
-plt.show()
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# xs, ys, zs, hits = zip(*datax)
+# ax.scatter(xs, ys, zs, s=hits)
+# plt.show()
 with open('output.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in data:
