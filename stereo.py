@@ -96,7 +96,8 @@ text = [39,41]
 # pub = rospy.Publisher('/object_info', String, queue_size=10)
 # thread = threading.Thread(target=call_function_periodically)
 # thread.start()
-init = 100
+init = 1
+Train_data = []
 while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
@@ -127,9 +128,10 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list and _c > .6:
-                cv2.imwrite('Data/Image/'+str(init)+'.png',color_frame)
+                cv2.imwrite('Data/Train/'+str(init)+'.png',color_frame)
                 init+=1
-                print(ser_con.get_orientation())
+                cor = ser_con.get_orientation()
+                Train_data.append(['Data/Train/'+str(init)+'.png',cor[0],cor[1],cor[2]])
                 if cv2.waitKey(1) & 0xFF == ord('m'):
                     x = int(input('X: '))
                     y = int(input('Y: '))
@@ -211,7 +213,6 @@ with open(csv_file_path, mode='w', newline='') as csv_file:
     for row in data:
         csv_writer.writerow(row)
 coordinate = points[0]
-print(coordinate)
 ret, depth_frame, color_frame, depth_info = dc.get_frame()
 x1 = float(coordinate[0])-500
 x2 = float(coordinate[1])-500
@@ -222,3 +223,7 @@ cv2.circle(color_frame, (round(points[0]),round(points[1])), 4, (0, 0, 255))
 cv2.imshow('YOLO V8 Detection', color_frame)     
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+with open('Data/Train/train.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    for row in Train_data:
+        writer.writerow(row[0],row[1],row[2],row[3])
