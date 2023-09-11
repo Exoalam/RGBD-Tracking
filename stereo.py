@@ -128,6 +128,10 @@ while True:
             y = y.detach().cpu().numpy()
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
+            u = int(u)
+            v = int(v)
+            k = int(k)
+            j = int(j)
             cropped_object = color_frame[v:v+k, u:u+j]
             if c in detect_list and _c > .6:
                 cv2.imwrite('Data/Train/'+str(init)+'.png',cropped_object)
@@ -228,4 +232,4 @@ cv2.destroyAllWindows()
 with open('Data/Train/train.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in Train_data:
-        writer.writerow(row[0],row[1],row[2],row[3])
+        writer.writerow([row[0],row[1],row[2],row[3]])
