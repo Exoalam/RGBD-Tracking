@@ -41,7 +41,7 @@ while True:
             if c in detect_list:    
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
-                distance = np.sqrt(points[0]**2+points[1]**2+points[2]**2)
+                distance = np.sqrt(pow(points[0],2)+pow(points[1],2)+pow(points[2],2))
                 cor = ser_con.get_orientation()
                 Train_data.append([distance,cor[0],cor[1],cor[2],h,w])
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
