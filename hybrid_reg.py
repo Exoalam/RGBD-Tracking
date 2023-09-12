@@ -42,7 +42,8 @@ while True:
             if c in detect_list:    
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
-                distance = np.sqrt(np.power(points[0],2)+np.power(points[1],2)+np.power(points[2],2))
+                print(points[0])
+                distance = np.sqrt(np.power(points[0][0],2)+np.power(points[0][1],2)+np.power(points[0][2],2))
                 cor = ser_con.get_orientation()
                 Train_data.append([distance,cor[0],cor[1],cor[2],h,w])
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
@@ -59,4 +60,4 @@ while True:
 with open('hybrid_reg.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     for row in Train_data:
-        writer.writerow([row[0],row[1],row[2],row[3]])
+        writer.writerow([row[0],row[1],row[2],row[3],row[4],row[5]])
