@@ -41,14 +41,7 @@ def max_hit(points):
         if max_point not in final_list:        
             final_list.append(max_point)
     return final_list        
-def timer():
-    global pub_string
-    pub.publish(pub_string)
 
-def call_function_periodically():
-    while True:
-        timer()
-        time.sleep(5)
 
 
 def calculate_angle_2d_x_axis(P1, P2):
@@ -87,11 +80,7 @@ target_dis = 1
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
 detect_list = [39,41,-99]
-text = [39,41]
-# rospy.init_node('yolo_new', anonymous=True)
-# pub = rospy.Publisher('/object_info', String, queue_size=10)
-# thread = threading.Thread(target=call_function_periodically)
-# thread.start()
+
 
 while True:
     
@@ -139,15 +128,7 @@ while True:
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
                 cv2.circle(color_frame, (320,240), 4, (0, 0, 255))
                 annotator.box_label(b, model.names[int(c)]+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))+ " Angle:"+str(round(angle,2)))
-                x =  '{ "name":"John", "age":30, "city":"New York"}'
-                pub_string = '{"class":'+str(int(c))+',"model":'+str(model.names[int(c)])+',"x":'+str(round(D_point[0],2))+',"y":'+str(round(D_point[1],2))+',"z":'+str(round(D_point[2],2))+'}'
-                if c in text:
-                    text.remove(c)
-                    with open('Map.txt', 'a') as file:
-                        file.seek(0, 2)
-                        new_object = str(model.names[int(c)])+" x:"+str(round(D_point[0],2))+" y:"+str(round(D_point[1],2))+" z:"+str(round(D_point[2],2))
-                        file.write(new_object + '\n')
-                    
+             
 
     color_frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', color_frame)     
