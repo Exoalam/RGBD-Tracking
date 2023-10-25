@@ -86,8 +86,8 @@ while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-    robot = (0,0,0)
-    map[robot]['hit'] = 100
+    # robot = (0,0,0)
+    # map[robot]['hit'] = 100
     results = model.predict(img)
     for r in results:
         
@@ -107,13 +107,13 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list:
-                if cv2.waitKey(1) & 0xFF == ord('m'):
-                    x = int(input('X: '))
-                    y = int(input('Y: '))
-                    z = int(input('Z: '))
-                    map[robot]['hit'] = 0
-                    robot = (x,y,z)
-                    map[robot]['hit'] = 100
+                # if cv2.waitKey(1) & 0xFF == ord('m'):
+                #     x = int(input('X: '))
+                #     y = int(input('Y: '))
+                #     z = int(input('Z: '))
+                #     map[robot]['hit'] = 0
+                #     robot = (x,y,z)
+                #     map[robot]['hit'] = 100
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
@@ -163,7 +163,7 @@ ax = fig.add_subplot(111, projection='3d')
 xs, ys, zs, hits = zip(*datax)
 ax.scatter(xs, ys, zs, s=hits)
 plt.show()
-with open('output.csv', 'w', newline='') as file:
-    writer = csv.writer(file)
-    for row in data:
-        writer.writerow(row)
+# with open('output.csv', 'w', newline='') as file:
+#     writer = csv.writer(file)
+#     for row in data:
+#         writer.writerow(row)
