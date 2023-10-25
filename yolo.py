@@ -80,14 +80,13 @@ target_dis = 1
 hit_map = np.zeros((1000,1000))
 data.append(['Angle','Static Z','Angled Z', 'Calculated Z', 'Static Accuracy', 'Angled Accuracy'])
 detect_list = [39,41,-99]
-
+robot = (0,0,0)
+map[robot]['hit'] = 100
 
 while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
-    # robot = (0,0,0)
-    # map[robot]['hit'] = 100
     results = model.predict(img)
     for r in results:
         
@@ -107,13 +106,13 @@ while True:
             x = x.detach().cpu().numpy()          
             point = int(x), int(y)
             if c in detect_list:
-                # if cv2.waitKey(1) & 0xFF == ord('m'):
-                #     x = int(input('X: '))
-                #     y = int(input('Y: '))
-                #     z = int(input('Z: '))
-                #     map[robot]['hit'] = 0
-                #     robot = (x,y,z)
-                #     map[robot]['hit'] = 100
+                if cv2.waitKey(1) & 0xFF == ord('m'):
+                    x = int(input('X: '))
+                    y = int(input('Y: '))
+                    z = int(input('Z: '))
+                    map[robot]['hit'] = 0
+                    robot = (x,y,z)
+                    map[robot]['hit'] = 100
                 points = dc.Global_points(point[0],point[1])
                 dis = dc.actual_depth(point[0],point[1])
                 depth = points[0][2]
@@ -146,7 +145,8 @@ for i in detect_list:
     for x in points:
         if map[x]['class'] == i:
             cls = map[x]['class']
-            data_actual.append(['class:'+str(cls)+'/'+model.names[int(cls)],' Object: '+str(count), ' Pos: ',x])
+            hits = map[x]['hit']
+            data_actual.append(['class:'+str(cls)+'/'+model.names[int(cls)],' Object: '+str(count), ' Pos: ',x, ' hits: ',hits])
             count += 1
 
 with open('hitlist.txt', 'a') as file:

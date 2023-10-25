@@ -1,1 +1,2 @@
-
+['class:41/cup', ' Object: 1', ' Pos: ', (29, 26, 61), ' hits: ', 32]
+['class:41/cup', ' Object: 1', ' Pos: ', (11, 26, 63), ' hits: ', 7]
