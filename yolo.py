@@ -87,6 +87,10 @@ while True:
     
     ret, depth_frame, color_frame, depth_info = dc.get_frame()
     img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+<<<<<<< HEAD
+=======
+    robot = (0,0,0)
+>>>>>>> c24efc9 (up)
     results = model.predict(img)
     for r in results:
         
