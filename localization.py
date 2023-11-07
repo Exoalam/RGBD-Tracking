@@ -16,7 +16,7 @@ custom_dtype = np.dtype([
     ('class', np.int8)       
 ])
 map = np.zeros((1000, 1000, 1000), dtype=custom_dtype)
-pub_string = ""
+
 def max_hit(points):
     final_list = []
     dis = 0
@@ -35,10 +35,9 @@ def max_hit(points):
 
 model = YOLO('yolov8n.pt')
 dc = DepthCamera()
-target_dis = 1
 hit_map = np.zeros((1000,1000))
 detect_list = [39,41,-99]
-robot = (0,0,0)
+robot = (500,500,0)
 map[robot]['hit'] = 100
 
 while True:
@@ -56,12 +55,8 @@ while True:
             b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
             c = box.cls
             pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
-            x = box.xywh[0][0]
-            y = box.xywh[0][1]
-            w = box.xywh[0][2].detach().cpu().numpy()
-            h = box.xywh[0][3].detach().cpu().numpy()
-            y = y.detach().cpu().numpy()
-            x = x.detach().cpu().numpy()          
+            x = box.xywh[0][0].detach().cpu().numpy()
+            y = box.xywh[0][1].detach().cpu().numpy()       
             point = int(x), int(y)
             if c in detect_list:
                 if cv2.waitKey(1) & 0xFF == ord('m'):
@@ -73,14 +68,17 @@ while True:
                     map[robot]['hit'] = 100
                            
                 points = dc.Global_points(point[0],point[1])
-                map[round(points[0]*100),round(points[1]*100),round(points[2]*100)]['hit'] += 1
-                map[round(points[0]*100),round(points[1]*100),round(points[2]*100)]['class'] = c
+                points[0][1] *= -1
+                dx = 500+points[0][0]*100
+                dy = 500+points[0][1]*100
+                map[round(dx),round(dy),round(points[0][2]*100)]['hit'] += 1
+                map[round(dx),round(dy),round(points[0][2]*100)]['class'] = c
                 cv2.circle(color_frame, point, 4, (0, 0, 255))
-                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0],2))+" y:"+str(round(points[1],2))+" z:"+str(round(points[2],2)))
+                annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
              
 
     color_frame = annotator.result()  
-    cv2.imshow('YOLO V8 Detection', color_frame)     
+    cv2.imshow('Detection', color_frame)     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         cv2.destroyAllWindows()
         break  
@@ -89,24 +87,10 @@ indices = np.where(map['hit'] > 1)
 
 points = list(zip(indices[0], indices[1], indices[2]))
 points = max_hit(points)
-data_actual = []
-for i in detect_list:
-    count = 1
-    for x in points:
-        if map[x]['class'] == i:
-            cls = map[x]['class']
-            hits = map[x]['hit']
-            data_actual.append(['class:'+str(cls)+'/'+model.names[int(cls)],' Object: '+str(count), ' Pos: ',x, ' hits: ',hits])
-            count += 1
-
-with open('hitlist.txt', 'a') as file:
-    file.seek(0, 2) 
-    for i in data_actual:
-        file.write(str(i)+'\n')
 
 datax = []
 for i, point in enumerate(points):
-    datax.append([point[0],point[1],point[2],map[point]['hit']])
+    datax.append([point[0]-500,point[1]-500,point[2],map[point]['hit']])
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
