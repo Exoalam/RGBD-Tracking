@@ -11,6 +11,16 @@ model.eval()  # Set the model to evaluation mode
 
 img = cv2.imread('bottle_ref.jpg', cv2.IMREAD_GRAYSCALE)
 img2 = cv2.imread('bottle_ref - Copy.png', cv2.IMREAD_GRAYSCALE)
+
+img = cv2.GaussianBlur(img, (5, 5), 0)
+
+# Apply Canny edge detector
+img = cv2.Canny(img, threshold1=100, threshold2=200)
+
+img2 = cv2.GaussianBlur(img2, (5, 5), 0)
+
+# Apply Canny edge detector
+img2 = cv2.Canny(img2, threshold1=100, threshold2=200)
 if img is None:
     raise ValueError("Image not found")
 img_tensor = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).float() / 255.0  # Normalize if necessary

@@ -2,9 +2,18 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 # Load the images
-reference_image = cv2.imread('bottle_ref.jpg')
-target_image = cv2.imread('bottle_titl.jpg')
+reference_image = cv2.imread('bottle_ref.jpg',0)
+target_image = cv2.imread('bottle_titl.jpg',0)
 
+reference_image = cv2.GaussianBlur(reference_image, (5, 5), 0)
+
+# Apply Canny edge detector
+reference_image = cv2.Canny(reference_image, threshold1=100, threshold2=200)
+
+target_image = cv2.GaussianBlur(target_image, (5, 5), 0)
+
+# Apply Canny edge detector
+target_image = cv2.Canny(target_image, threshold1=100, threshold2=200)
 # Initialize ORB detector
 orb = cv2.ORB_create(nfeatures=1000)
 
