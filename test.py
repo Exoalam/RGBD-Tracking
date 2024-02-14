@@ -1,9 +1,9 @@
 from ultralytics import YOLO
 import cv2
-from ultralytics.yolo.utils.plotting import Annotator
+from ultralytics.utils.plotting import Annotator
 
 model = YOLO('yolov8n.pt')
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 cap.set(3, 640)
 cap.set(4, 480)
 
@@ -28,7 +28,7 @@ while True:
           
     frame = annotator.result()  
     cv2.imshow('YOLO V8 Detection', frame)     
-    if cv2.waitKey(1) & 0xFF == ord(' '):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()

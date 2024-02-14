@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 # Load the images
-reference_image = cv2.imread('test/test_source.png')
-target_image = cv2.imread('test/test_target.png')
+reference_image = cv2.imread('bottle_ref.jpg')
+target_image = cv2.imread('bottle_titl.jpg')
 
 # Initialize ORB detector
 orb = cv2.ORB_create(nfeatures=1000)
@@ -42,3 +43,19 @@ if H is not None:
     print(f"Rotation Angle (degrees): {angle_deg}")
 else:
     print("Homography matrix not found.")
+
+good_matches = matches[: int(len(matches) * 0.2)]
+print("Good matches: ", len(good_matches))
+
+matched = cv2.drawMatches(
+    reference_image,
+    kp1,
+    target_image,
+    kp2,
+    good_matches,
+    None,
+    flags=2,
+)
+
+plt.imshow(matched)
+plt.show()
