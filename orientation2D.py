@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 # Load the images
-reference_image = cv2.imread('bottle_ref.jpg',0)
-target_image = cv2.imread('bottle_titl.jpg',0)
+reference_image = cv2.imread('cup_ref.png',0)
+target_image = cv2.imread('title1.jpg',0)
 
 reference_image = cv2.GaussianBlur(reference_image, (5, 5), 0)
 
