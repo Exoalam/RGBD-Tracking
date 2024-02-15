@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 model = SuperPoint()
-weights_path = 'weights\superpoint_v6_from_tf.pth'
+weights_path = 'weights/superpoint_v6_from_tf.pth'
 model.load_state_dict(torch.load(weights_path))
 model.eval()  # Set the model to evaluation mode
 
