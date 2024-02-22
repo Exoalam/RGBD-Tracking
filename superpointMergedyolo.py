@@ -34,7 +34,7 @@ def max_hit(points):
             final_list.append(max_point)
     return final_list  
 
-model = YOLO('yolov8n.pt')
+model = YOLO('best.pt')
 dc = DepthCamera()
 hit_map = np.zeros((1000,1000))
 detect_list = [39,41,-99]
