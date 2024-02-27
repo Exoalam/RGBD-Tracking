@@ -8,8 +8,6 @@ from realsense_depth import *
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from superpoint_pytorch import SuperPoint
-import torch
 
 custom_dtype = np.dtype([
     ('hit', np.int8),       
@@ -39,28 +37,12 @@ dc = DepthCamera()
 hit_map = np.zeros((1000,1000))
 detect_list = [39,41,-99]
 datax = []
-
-model2 = SuperPoint()
-weights_path = 'weights/superpoint_v6_from_tf.pth'
-model2.load_state_dict(torch.load(weights_path))
-model2.eval()  # Set the model to evaluation mode
-img = cv2.imread('cup_ref.jpg', cv2.IMREAD_GRAYSCALE)
-img_tensor = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).float() / 255.0
-with torch.no_grad():
-    output = model2({'image': img_tensor})
-    keypoints = output['keypoints'][0]  # Assuming single image (batch size = 1)
-    descriptors = output['descriptors'][0]
-
-desc1_np = descriptors.cpu().numpy()
-desc1_np = desc1_np.astype(np.float32)
-
 while True:
     map = np.zeros((1000, 1000, 1000), dtype=custom_dtype)
     while True: 
         ret, depth_frame, color_frame, depth_info = dc.get_frame()
         img = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
         results = model.predict(img)
-        img_gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
         for r in results:
             
             annotator = Annotator(color_frame)
@@ -68,48 +50,13 @@ while True:
             boxes = r.boxes
             for box in boxes:
                 
-                b = box.xyxy[0]
+                b = box.xyxy[0]  # get box coordinates in (top, left, bottom, right) format
                 c = box.cls
                 pt1 = (int(b[0].detach().cpu().numpy()),int(b[1].detach().cpu().numpy()))
                 x = box.xywh[0][0].detach().cpu().numpy()
                 y = box.xywh[0][1].detach().cpu().numpy()       
                 point = int(x), int(y)
                 if c in detect_list:
-                    x1, y1, x2, y2 = [int(val.item()) for val in b[:4]]
-
-                    cropped_frame = img_gray[y1:y2, x1:x2]
-                    img_tensor2 = torch.from_numpy(cropped_frame).unsqueeze(0).unsqueeze(0).float() / 255.0
-                    with torch.no_grad():
-                        output2 = model2({'image': img_tensor2})
-                        keypoints2 = output2['keypoints'][0]  # Assuming single image (batch size = 1)
-                        descriptors2 = output2['descriptors'][0]
-                    desc2_np = descriptors2.cpu().numpy()
-                    desc2_np = desc2_np.astype(np.float32)
-                    bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
-                    matches = bf.match(desc1_np, desc2_np)
-                    matches = sorted(matches, key=lambda x: x.distance)
-
-                    # Convert keypoints tensors to numpy arrays
-                    keypoints_np = keypoints.cpu().detach().numpy()
-                    keypoints2_np = keypoints2.cpu().detach().numpy()
-
-                    # # Convert numpy arrays of keypoints to lists of cv2.KeyPoint objects
-                    keypoints_cv = [cv2.KeyPoint(float(kp[0]), float(kp[1]), 1) for kp in keypoints_np]
-                    keypoints2_cv = [cv2.KeyPoint(float(kp[0]), float(kp[1]), 1) for kp in keypoints2_np]
-
-
-                    kp1 = [cv2.KeyPoint(kp[0], kp[1], 1) for kp in keypoints_np]
-                    kp2 = [cv2.KeyPoint(kp[0], kp[1], 1) for kp in keypoints2_np]
-
-                    # Convert the matches to point arrays for findHomography
-                    src_pts = np.float32([kp1[m.queryIdx].pt for m in matches]).reshape(-1, 1, 2)
-                    dst_pts = np.float32([kp2[m.trainIdx].pt for m in matches]).reshape(-1, 1, 2)
-
-                    # Find homography matrix using RANSAC
-                    H, status = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC)
-                    theta = -np.arctan2(H[0,1], H[0,0]) * (180 / np.pi)
-
-                    print(theta)
                     if cv2.waitKey(1) & 0xFF == ord('m'):
                         x = int(input('X: '))
                         y = int(input('Y: '))
@@ -125,7 +72,7 @@ while True:
                     map[round(dx),round(dy),round(points[0][2]*100)]['hit'] += 1
                     map[round(dx),round(dy),round(points[0][2]*100)]['class'] = c
                     cv2.circle(color_frame, point, 4, (0, 0, 255))
-                    annotator.box_label(b, model.names[int(c)]+ " " + str(theta) + " "+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
+                    annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
                 
 
         color_frame = annotator.result()  
