@@ -14,6 +14,42 @@ custom_dtype = np.dtype([
     ('accuracy', np.int8),
     ('class', np.int8)       
 ])
+def priciple_axis(points,dc):
+    # points = np.array([[x1, y1, z1], [x2, y2, z2], ..., [xN, yN, zN]])
+    # Center the data
+    xy_pairs_np = points
+
+    batch_depths = dc.batch_global_points(xy_pairs_np[:, 0], xy_pairs_np[:, 1])
+    
+    # Convert batch_depths to a NumPy array if it's not already one
+    points = np.array(batch_depths)
+    points_mean = points.mean(axis=0)
+    points_centered = points - points_mean
+
+    # Calculate the covariance matrix
+    cov_matrix = np.cov(points_centered, rowvar=False)
+
+    # Compute eigenvalues and eigenvectors
+    eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+
+    # Sort the eigenvectors by eigenvalues in descending order
+    # The eigenvector with the highest eigenvalue is the principal component
+    indices = np.argsort(eigenvalues)[::-1]
+    principal_axis = eigenvectors[:, indices[0]]
+
+
+# Assuming principal_axis is already calculated and normalized
+
+# Calculate angles with respect to x, y, and z axes
+    angle_with_x = np.arccos(principal_axis[0]) * (180.0 / np.pi)  # Convert to degrees
+    angle_with_y = np.arccos(principal_axis[1]) * (180.0 / np.pi)  # Convert to degrees
+    angle_with_z = np.arccos(principal_axis[2]) * (180.0 / np.pi)  # Convert to degrees
+
+    print(f"Orientation with respect to X-axis: {angle_with_x} degrees")
+    print(f"Orientation with respect to Y-axis: {angle_with_y} degrees")
+    print(f"Orientation with respect to Z-axis: {angle_with_z} degrees")
+
+    return principal_axis
 
 def filter_xy_pairs_by_depth(xy_pairs, dc):
     # Convert list of xy pairs to a NumPy array for vectorized operations
@@ -28,7 +64,12 @@ def filter_xy_pairs_by_depth(xy_pairs, dc):
 
     # Filter to keep only those pairs where the corresponding depth is greater than 0
     # Assuming depth information is in the third column ([2]) of batch_depths_np
-    filtered_indices = np.where(batch_depths_np[:, 2] > 0)[0]
+    # Calculate the average depth of the third column (depth values)
+    average_depth = np.mean(batch_depths_np[:, 2])
+
+# Filter indices where depth values are greater than 0 and less than average_depth + 0.2
+    filtered_indices = np.where((batch_depths_np[:, 2] > 0) & (batch_depths_np[:, 2] < average_depth + 0.2))[0]
+
 
     # Use filtered indices to select xy pairs
     filtered_xy_pairs_np = xy_pairs_np[filtered_indices]
@@ -100,12 +141,18 @@ while True:
 
                     # Stack and reshape to get a list of (x, y) pairs
                     xy_pairs = np.stack([X, Y], axis=-1).reshape(-1, 2)
+                    axis = priciple_axis(xy_pairs,dc)
+                    angle_with_x = np.arccos(axis[0]) * (180.0 / np.pi)  # Convert to degrees
+                    angle_with_y = np.arccos(axis[1]) * (180.0 / np.pi)  # Convert to degrees
+                    angle_with_z = np.arccos(axis[2]) * (180.0 / np.pi)  # Convert to degrees
                     xy_pairs_list = filter_xy_pairs_by_depth(xy_pairs,dc)
                     for index, (x, y) in enumerate(xy_pairs_list):
-                        if index % 10 == 0:  
+                        if index % 5 == 0:  
                             cv2.circle(color_frame, (x, y), 1, (0, 0, 255), -1)
                     #cv2.circle(color_frame, point, 4, (0, 0, 255))
-                    annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
+                    
+                    #annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
+                    annotator.box_label(b, model.names[int(c)]+" x:"+str(round(angle_with_x))+" y:"+str(round(angle_with_y))+" z:"+str(round(angle_with_z)))
                 
 
         color_frame = annotator.result()  
