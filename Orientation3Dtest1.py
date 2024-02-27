@@ -15,6 +15,26 @@ custom_dtype = np.dtype([
     ('class', np.int8)       
 ])
 
+def filter_xy_pairs_by_depth(xy_pairs, dc):
+    # Convert list of xy pairs to a NumPy array for vectorized operations
+    xy_pairs_np = xy_pairs
+
+    # Assuming batch_global_points has been modified to return a NumPy array of depths
+    # If xs and ys need to be separate for batch_global_points, adjust as necessary
+    batch_depths = dc.batch_global_points(xy_pairs_np[:, 0], xy_pairs_np[:, 1])
+    
+    # Convert batch_depths to a NumPy array if it's not already one
+    batch_depths_np = np.array(batch_depths)
+
+    # Filter to keep only those pairs where the corresponding depth is greater than 0
+    # Assuming depth information is in the third column ([2]) of batch_depths_np
+    filtered_indices = np.where(batch_depths_np[:, 2] > 0)[0]
+
+    # Use filtered indices to select xy pairs
+    filtered_xy_pairs_np = xy_pairs_np[filtered_indices]
+
+
+    return filtered_xy_pairs_np
 
 def max_hit(points):
     final_list = []
@@ -57,21 +77,34 @@ while True:
                 y = box.xywh[0][1].detach().cpu().numpy()       
                 point = int(x), int(y)
                 if c in detect_list:
-                    if cv2.waitKey(1) & 0xFF == ord('m'):
-                        x = int(input('X: '))
-                        y = int(input('Y: '))
-                        z = int(input('Z: '))
-                        map[robot]['hit'] = 0
-                        robot = (x,y,z) 
-                        map[robot]['hit'] = 100
-                            
                     points = dc.Global_points(point[0],point[1])
                     points[0][1] *= -1
                     dx = 500+points[0][0]*100
                     dy = 500+points[0][1]*100
                     map[round(dx),round(dy),round(points[0][2]*100)]['hit'] += 1
                     map[round(dx),round(dy),round(points[0][2]*100)]['class'] = c
-                    cv2.circle(color_frame, point, 4, (0, 0, 255))
+                    depth_threshold = 0.05  # Depth threshold to filter out background, adjust based on your requirements
+
+                    top = int(b[1].detach().cpu().numpy())
+                    left = int(b[0].detach().cpu().numpy())
+                    bottom = int(b[3].detach().cpu().numpy())
+                    right = int(b[2].detach().cpu().numpy())
+                    # Calculate the average depth of the object
+                    # Collect all (x, y) pairs first
+                    step_size = 1
+                    xs = np.arange(left, right, step_size)
+                    ys = np.arange(top, bottom, step_size)
+
+                    # Create a meshgrid from xs and ys
+                    X, Y = np.meshgrid(xs, ys)
+
+                    # Stack and reshape to get a list of (x, y) pairs
+                    xy_pairs = np.stack([X, Y], axis=-1).reshape(-1, 2)
+                    xy_pairs_list = filter_xy_pairs_by_depth(xy_pairs,dc)
+                    for index, (x, y) in enumerate(xy_pairs_list):
+                        if index % 10 == 0:  
+                            cv2.circle(color_frame, (x, y), 1, (0, 0, 255), -1)
+                    #cv2.circle(color_frame, point, 4, (0, 0, 255))
                     annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
                 
 

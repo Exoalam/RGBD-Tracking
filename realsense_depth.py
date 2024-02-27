@@ -95,5 +95,29 @@ class DepthCamera:
     
     def release(self):
         self.pipeline.stop()
+    
+    def batch_global_points(self, xs, ys):
+        frames = self.pipeline.wait_for_frames()
+        depth_frame = frames.get_depth_frame()
+
+        aligned_frames = align.process(frames)
+        depth_frame = aligned_frames.get_depth_frame()
+
+        # Get depth frame as numpy array
+        depth_image = np.asanyarray(depth_frame.get_data())
+        
+        # Get intrinsic properties of the depth image
+        depth_intrin = depth_frame.profile.as_video_stream_profile().intrinsics
+        
+        global_points = []
+        
+        # Assuming xs and ys are lists of x and y coordinates
+        for x, y in zip(xs, ys):
+            depth = depth_image[y, x] * depth_scale
+            # Convert depth pixel to global coordinates
+            point = rs.rs2_deproject_pixel_to_point(depth_intrin, [x, y], depth)
+            global_points.append(point)
+        
+        return global_points
 
     
