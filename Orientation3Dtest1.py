@@ -32,8 +32,6 @@ def priciple_axis(points,dc):
     # Compute eigenvalues and eigenvectors
     eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
 
-    # Sort the eigenvectors by eigenvalues in descending order
-    # The eigenvector with the highest eigenvalue is the principal component
     indices = np.argsort(eigenvalues)[::-1]
     principal_axis = eigenvectors[:, indices[0]]
 
@@ -56,16 +54,10 @@ def filter_xy_pairs_by_depth(xy_pairs, dc):
     #xy_center = dc.Global_points(center.x, center.y)
     xy_pairs_np = xy_pairs
 
-    # Assuming batch_global_points has been modified to return a NumPy array of depths
-    # If xs and ys need to be separate for batch_global_points, adjust as necessary
     batch_depths = dc.batch_global_points(xy_pairs_np[:, 0], xy_pairs_np[:, 1])
     
     # Convert batch_depths to a NumPy array if it's not already one
     batch_depths_np = np.array(batch_depths)
-
-    # Filter to keep only those pairs where the corresponding depth is greater than 0
-    # Assuming depth information is in the third column ([2]) of batch_depths_np
-    # Calculate the average depth of the third column (depth values)
     average_depth = np.mean(batch_depths_np[:, 2])
 
 # Filter indices where depth values are greater than 0 and less than average_depth + 0.2
