@@ -53,6 +53,7 @@ def priciple_axis(points,dc):
 
 def filter_xy_pairs_by_depth(xy_pairs, dc):
     # Convert list of xy pairs to a NumPy array for vectorized operations
+    #xy_center = dc.Global_points(center.x, center.y)
     xy_pairs_np = xy_pairs
 
     # Assuming batch_global_points has been modified to return a NumPy array of depths
@@ -68,6 +69,8 @@ def filter_xy_pairs_by_depth(xy_pairs, dc):
     average_depth = np.mean(batch_depths_np[:, 2])
 
 # Filter indices where depth values are greater than 0 and less than average_depth + 0.2
+    #filtered_indices = np.where(((batch_depths_np[:, 2] - xy_center[2])*100 < 10))[0]
+    #print((batch_depths_np[:, 2] - xy_center[2])*100)
     filtered_indices = np.where((batch_depths_np[:, 2] > 0) & (batch_depths_np[:, 2] < average_depth + 0.2))[0]
 
 
@@ -141,11 +144,11 @@ while True:
 
                     # Stack and reshape to get a list of (x, y) pairs
                     xy_pairs = np.stack([X, Y], axis=-1).reshape(-1, 2)
-                    axis = priciple_axis(xy_pairs,dc)
+                    xy_pairs_list = filter_xy_pairs_by_depth(xy_pairs,dc)
+                    axis = priciple_axis(xy_pairs_list,dc)
                     angle_with_x = np.arccos(axis[0]) * (180.0 / np.pi)  # Convert to degrees
                     angle_with_y = np.arccos(axis[1]) * (180.0 / np.pi)  # Convert to degrees
                     angle_with_z = np.arccos(axis[2]) * (180.0 / np.pi)  # Convert to degrees
-                    xy_pairs_list = filter_xy_pairs_by_depth(xy_pairs,dc)
                     for index, (x, y) in enumerate(xy_pairs_list):
                         if index % 5 == 0:  
                             cv2.circle(color_frame, (x, y), 1, (0, 0, 255), -1)
