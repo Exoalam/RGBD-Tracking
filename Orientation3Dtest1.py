@@ -72,6 +72,22 @@ def filter_xy_pairs_by_depth(xy_pairs, dc):
 
     return filtered_xy_pairs_np
 
+def draw_principal_axis_on_image(image, xy_pairs, principal_axis, length=100):
+    # Calculate the centroid of xy_pairs
+    centroid = np.mean(xy_pairs, axis=0)
+    
+    # Assuming the principal_axis vector is normalized, calculate the end point
+    end_point = centroid + principal_axis[:2] * length  # Use only X and Y for 2D drawing
+    
+    # Convert points to integer for drawing
+    centroid = tuple(centroid.astype(int))
+    end_point = tuple(end_point.astype(int))
+    
+    # Draw the line representing the principal axis
+    cv2.line(image, centroid, end_point, (0, 255, 0), 2)
+
+    return image
+
 def max_hit(points):
     final_list = []
     dis = 0
@@ -137,17 +153,22 @@ while True:
                     # Stack and reshape to get a list of (x, y) pairs
                     xy_pairs = np.stack([X, Y], axis=-1).reshape(-1, 2)
                     xy_pairs_list = filter_xy_pairs_by_depth(xy_pairs,dc)
-                    axis = priciple_axis(xy_pairs_list,dc)
-                    angle_with_x = np.arccos(axis[0]) * (180.0 / np.pi)  # Convert to degrees
-                    angle_with_y = np.arccos(axis[1]) * (180.0 / np.pi)  # Convert to degrees
-                    angle_with_z = np.arccos(axis[2]) * (180.0 / np.pi)  # Convert to degrees
-                    for index, (x, y) in enumerate(xy_pairs_list):
-                        if index % 5 == 0:  
-                            cv2.circle(color_frame, (x, y), 1, (0, 0, 255), -1)
-                    #cv2.circle(color_frame, point, 4, (0, 0, 255))
-                    
-                    #annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
-                    annotator.box_label(b, model.names[int(c)]+" x:"+str(round(angle_with_x))+" y:"+str(round(angle_with_y))+" z:"+str(round(angle_with_z)))
+                    try:
+                        axis = priciple_axis(xy_pairs_list,dc)
+                        angle_with_x = np.arccos(axis[0]) * (180.0 / np.pi)  # Convert to degrees
+                        angle_with_y = np.arccos(axis[1]) * (180.0 / np.pi)  # Convert to degrees
+                        angle_with_z = np.arccos(axis[2]) * (180.0 / np.pi)  # Convert to degrees
+                        draw_principal_axis_on_image(color_frame, xy_pairs_list, axis)
+                        # for index, (x, y) in enumerate(xy_pairs_list):
+                        #     if index % 5 == 0:  
+                        #         cv2.circle(color_frame, (x, y), 1, (0, 0, 255), -1)
+                        #cv2.circle(color_frame, point, 4, (0, 0, 255))
+                        
+                        #annotator.box_label(b, model.names[int(c)]+" x:"+str(round(points[0][0],2))+" y:"+str(round(points[0][1],2))+" z:"+str(round(points[0][2],2)))
+                        annotator.box_label(b, model.names[int(c)]+" x:"+str(round(angle_with_x))+" y:"+str(round(angle_with_y))+" z:"+str(round(angle_with_z)))
+                    except:
+                        print("YOLO")
+
                 
 
         color_frame = annotator.result()  
